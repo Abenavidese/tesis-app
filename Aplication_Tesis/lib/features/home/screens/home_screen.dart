@@ -3,6 +3,7 @@ import '../providers/home_provider.dart';
 import '../widgets/image_preview.dart';
 import '../widgets/action_buttons.dart';
 import '../widgets/result_display.dart';
+import '../widgets/voice_result_display.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/app_colors.dart';
 
@@ -123,6 +124,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   return ResultDisplay(
                     analysis: _provider.currentAnalysis,
                     onRetry: _provider.retryAnalysis,
+                  );
+                },
+              ),
+
+              // Voice recognition result section
+              AnimatedBuilder(
+                animation: _provider,
+                builder: (context, child) {
+                  return VoiceResultDisplay(
+                    recognizedText: _provider.recognizedText,
+                    isRecording: _provider.isRecording,
+                    isProcessing: _provider.isProcessing && _provider.isRecording == false,
                   );
                 },
               ),

@@ -39,9 +39,11 @@ class ActionButtons extends StatelessWidget {
           onPressed: () => homeProvider.onButton3Pressed(context),
         ),
         CustomButton(
-          label: AppStrings.button4,
-          icon: Icons.info,
+          label: homeProvider.isRecording ? 'Detener grabación' : 'Grabar voz',
+          icon: homeProvider.isRecording ? Icons.stop : Icons.mic,
           onPressed: homeProvider.onButton4Pressed,
+          isLoading: homeProvider.isProcessing,
+          backgroundColor: homeProvider.isRecording ? Colors.red : null,
         ),
       ],
     );

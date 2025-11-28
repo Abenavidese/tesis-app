@@ -4,19 +4,26 @@ import '../models/image_analysis.dart';
 import '../../../core/services/camera_service.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/services/file_service.dart';
+import '../../../core/services/audio_service.dart';
 import '../../../core/debug/api_debug_screen.dart';
 
 class HomeProvider extends ChangeNotifier {
   final CameraService _cameraService = CameraService();
   final ApiService _apiService = ApiService();
   final FileService _fileService = FileService();
+  final AudioService _audioService = AudioService();
 
   ImageAnalysis? _currentAnalysis;
   bool _isProcessing = false;
+  bool _isRecording = false;
+  String? _recognizedText;
+  bool _audioInitialized = false;
 
   ImageAnalysis? get currentAnalysis => _currentAnalysis;
   bool get isProcessing => _isProcessing;
   bool get hasImage => _currentAnalysis?.imageFile != null;
+  bool get isRecording => _isRecording;
+  String? get recognizedText => _recognizedText;
 
   Future<void> takePicture() async {
     try {
@@ -126,7 +133,74 @@ class HomeProvider extends ChangeNotifier {
   }
 
   Future<void> onButton4Pressed() async {
-    // TODO: Implement button 4 functionality
-    debugPrint('Button 4 pressed');
+    if (_isRecording) {
+      await stopRecording();
+    } else {
+      await startRecording();
+    }
+  }
+
+  Future<void> startRecording() async {
+    try {
+      // Inicializar el servicio si no está inicializado
+      if (!_audioInitialized) {
+        _setProcessing(true);
+        final initialized = await _audioService.initialize();
+        _audioInitialized = initialized;
+        _setProcessing(false);
+        
+        if (!initialized) {
+          debugPrint('❌ No se pudo inicializar el servicio de audio');
+          return;
+        }
+      }
+      
+      _isRecording = true;
+      _recognizedText = null;
+      notifyListeners();
+      
+      final success = await _audioService.startRecording();
+      if (!success) {
+        _isRecording = false;
+        notifyListeners();
+        debugPrint('❌ No se pudo iniciar la grabación');
+      }
+    } catch (e) {
+      _isRecording = false;
+      notifyListeners();
+      debugPrint('❌ Error iniciando grabación: $e');
+    }
+  }
+
+  Future<void> stopRecording() async {
+    try {
+      _setProcessing(true);
+      
+      final recognizedText = await _audioService.stopRecording();
+      _isRecording = false;
+      
+      if (recognizedText != null && _audioService.hasValidText(recognizedText)) {
+        _recognizedText = recognizedText;
+        debugPrint('🎤 Texto reconocido directamente: $recognizedText');
+      } else {
+        _recognizedText = recognizedText ?? 'No se pudo capturar el audio. Verifica el micrófono.';
+        debugPrint('❌ No se reconoció texto válido');
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      _isRecording = false;
+      _recognizedText = 'Error procesando voz: ${e.toString()}';
+      notifyListeners();
+      debugPrint('❌ Error deteniendo grabación: $e');
+    } finally {
+      _setProcessing(false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _audioService.dispose();
+    super.dispose();
   }
 }

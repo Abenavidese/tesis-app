@@ -3,6 +3,10 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from PIL import Image
 import io
+import json
+import wave
+import tempfile
+import os
 from blip import quick_generate
 
 app = FastAPI(
@@ -146,3 +150,124 @@ async def test_upload(image: UploadFile = File(...)):
 def ping():
     """Endpoint simple para verificar conectividad"""
     return {"message": "pong", "status": "server_running"}
+
+
+@app.post("/speech-to-text")
+async def speech_to_text(audio: UploadFile = File(...)):
+    """Endpoint para convertir audio a texto usando Vosk"""
+    print(f"\n🎤 Nueva petición de audio recibida")
+    print(f"📄 Archivo: {audio.filename}")
+    print(f"📋 Content-Type: {audio.content_type}")
+    
+    # Validar formato de audio
+    allowed_audio_types = [
+        "audio/wav",
+        "audio/wave", 
+        "audio/x-wav",
+        "audio/mpeg",
+        "audio/mp3",
+        "application/octet-stream"  # Fallback
+    ]
+    
+    if audio.content_type not in allowed_audio_types:
+        if audio.filename and any(audio.filename.lower().endswith(ext) for ext in ['.wav', '.mp3', '.m4a']):
+            print("⚠️ Content-type de audio no reconocido pero extensión válida, continuando...")
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Formato de audio no soportado. Recibido: {audio.content_type}. Archivo: {audio.filename}",
+            )
+    
+    print("✅ Formato de audio válido")
+    
+    try:
+        # Guardar audio en archivo temporal
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_audio:
+            audio_data = await audio.read()
+            temp_audio.write(audio_data)
+            temp_audio_path = temp_audio.name
+        
+        print(f"💾 Audio guardado temporalmente en: {temp_audio_path}")
+        
+        # Procesar con Vosk
+        import time
+        start_time = time.time()
+        
+        text_result = process_audio_with_vosk(temp_audio_path)
+        
+        processing_time = time.time() - start_time
+        print(f"✅ Audio procesado en {processing_time:.2f}s")
+        
+        # Limpiar archivo temporal
+        os.unlink(temp_audio_path)
+        
+        return JSONResponse(content={
+            "text": text_result,
+            "status": "success",
+            "processing_time_seconds": round(processing_time, 2),
+            "confidence": "high"  # Vosk no devuelve confidence fácilmente
+        })
+        
+    except Exception as e:
+        print(f"❌ Error procesando audio: {str(e)}")
+        # Limpiar archivo temporal si existe
+        if 'temp_audio_path' in locals() and os.path.exists(temp_audio_path):
+            os.unlink(temp_audio_path)
+        
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error procesando audio: {str(e)}"
+        )
+
+
+def process_audio_with_vosk(audio_file_path):
+    """Procesa audio usando el modelo Vosk"""
+    try:
+        import vosk
+        import json
+        
+        # Ruta al modelo Vosk
+        model_path = r"C:\Users\EleXc\Desktop\tesis_app\vosk-model-small-es-0.42"
+        
+        if not os.path.exists(model_path):
+            raise Exception(f"Modelo Vosk no encontrado en: {model_path}")
+        
+        # Cargar modelo
+        print("🔄 Cargando modelo Vosk...")
+        model = vosk.Model(model_path)
+        rec = vosk.KaldiRecognizer(model, 16000)
+        
+        # Leer archivo de audio
+        with wave.open(audio_file_path, 'rb') as wf:
+            # Verificar formato
+            if wf.getnchannels() != 1 or wf.getsampwidth() != 2 or wf.getframerate() != 16000:
+                print("⚠️ Formato de audio no óptimo para Vosk (esperado: mono, 16kHz, 16-bit)")
+            
+            # Procesar audio en chunks
+            results = []
+            while True:
+                data = wf.readframes(4000)
+                if len(data) == 0:
+                    break
+                if rec.AcceptWaveform(data):
+                    result = json.loads(rec.Result())
+                    if result.get('text'):
+                        results.append(result['text'])
+            
+            # Resultado final
+            final_result = json.loads(rec.FinalResult())
+            if final_result.get('text'):
+                results.append(final_result['text'])
+        
+        # Combinar todos los resultados
+        full_text = ' '.join(results).strip()
+        
+        if not full_text:
+            return "No se detectó ningún texto en el audio"
+        
+        return full_text
+        
+    except ImportError:
+        raise Exception("Vosk no está instalado. Instala con: pip install vosk")
+    except Exception as e:
+        raise Exception(f"Error en Vosk: {str(e)}")
