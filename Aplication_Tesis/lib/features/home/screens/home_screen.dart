@@ -139,6 +139,86 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
+
+              // Evaluate button
+              AnimatedBuilder(
+                animation: _provider,
+                builder: (context, child) {
+                  if (!_provider.canEvaluate) {
+                    return const SizedBox.shrink();
+                  }
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _provider.isProcessing ? null : () => _provider.evaluateAnswer(),
+                        icon: const Icon(Icons.check_circle_outline),
+                        label: const Text(
+                          'EVALUAR RESPUESTA',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              // Evaluation result
+              AnimatedBuilder(
+                animation: _provider,
+                builder: (context, child) {
+                  if (_provider.evaluationMessage == null) {
+                    return const SizedBox.shrink();
+                  }
+                  
+                  final isCorrect = _provider.isCorrect ?? false;
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: isCorrect ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isCorrect ? Colors.green : Colors.orange,
+                          width: 2,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            isCorrect ? Icons.celebration : Icons.refresh,
+                            size: 48,
+                            color: isCorrect ? Colors.green : Colors.orange,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _provider.evaluationMessage!,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: isCorrect ? Colors.green : Colors.orange,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
               const SizedBox(height: 32),
 
               // Action buttons

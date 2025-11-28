@@ -144,6 +144,79 @@ class ApiService {
       throw ApiException('Error procesando audio: ${e.toString()}', -1);
     }
   }
+
+  Future<EvaluationResult> evaluateResponse({
+    required String textoModelo,
+    required String textoNino,
+    double umbral = 0.6,
+  }) async {
+    try {
+      final uri = Uri.parse('${ApiConstants.baseUrl}/evaluate');
+      
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'texto_modelo': textoModelo,
+          'texto_nino': textoNino,
+          'umbral': umbral,
+        }),
+      ).timeout(
+        const Duration(seconds: 30),
+      );
+
+      print('📥 Respuesta evaluación: ${response.statusCode}');
+      print('📄 Cuerpo: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return EvaluationResult.fromJson(data);
+      } else {
+        String errorMessage;
+        try {
+          final errorData = jsonDecode(response.body);
+          errorMessage = errorData['detail'] ?? response.body;
+        } catch (e) {
+          errorMessage = response.body;
+        }
+        
+        throw ApiException(
+          'Error evaluando respuesta (${response.statusCode}): $errorMessage',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw ApiException('La evaluación tardó demasiado. Intenta de nuevo.', 408);
+    } on http.ClientException {
+      throw ApiException('Error de conexión. Verifica que el servidor esté ejecutándose.', 0);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Error evaluando respuesta: ${e.toString()}', -1);
+    }
+  }
+}
+
+class EvaluationResult {
+  final String mensaje;
+  final bool esCorrecta;
+  final Map<String, dynamic> detalles;
+
+  EvaluationResult({
+    required this.mensaje,
+    required this.esCorrecta,
+    required this.detalles,
+  });
+
+  factory EvaluationResult.fromJson(Map<String, dynamic> json) {
+    return EvaluationResult(
+      mensaje: json['mensaje'] as String,
+      esCorrecta: json['es_correcta'] as bool,
+      detalles: json['detalles'] as Map<String, dynamic>,
+    );
+  }
 }
 
 class ApiException implements Exception {

@@ -18,16 +18,28 @@ class HomeProvider extends ChangeNotifier {
   bool _isRecording = false;
   String? _recognizedText;
   bool _audioInitialized = false;
+  String? _evaluationMessage;
+  bool? _isCorrect;
 
   ImageAnalysis? get currentAnalysis => _currentAnalysis;
   bool get isProcessing => _isProcessing;
   bool get hasImage => _currentAnalysis?.imageFile != null;
   bool get isRecording => _isRecording;
   String? get recognizedText => _recognizedText;
+  String? get evaluationMessage => _evaluationMessage;
+  bool? get isCorrect => _isCorrect;
+  
+  bool get canEvaluate => 
+      _currentAnalysis?.caption != null && 
+      _recognizedText != null && 
+      _recognizedText!.isNotEmpty &&
+      !_recognizedText!.startsWith('No se') &&
+      !_recognizedText!.startsWith('Error');
 
   Future<void> takePicture() async {
     try {
       _setProcessing(true);
+      clearEvaluation(); // Limpiar evaluación anterior
       
       final File? imageFile = await _cameraService.takePicture();
       if (imageFile == null) {
@@ -142,6 +154,8 @@ class HomeProvider extends ChangeNotifier {
 
   Future<void> startRecording() async {
     try {
+      clearEvaluation(); // Limpiar evaluación anterior
+      
       // Inicializar el servicio si no está inicializado
       if (!_audioInitialized) {
         _setProcessing(true);
@@ -196,6 +210,54 @@ class HomeProvider extends ChangeNotifier {
     } finally {
       _setProcessing(false);
     }
+  }
+
+  Future<void> evaluateAnswer() async {
+    if (!canEvaluate) {
+      debugPrint('❌ No se puede evaluar: falta caption o texto reconocido');
+      return;
+    }
+
+    try {
+      _setProcessing(true);
+      _evaluationMessage = null;
+      _isCorrect = null;
+      
+      final textoModelo = _currentAnalysis!.caption!;
+      final textoNino = _recognizedText!;
+      
+      debugPrint('🔍 Evaluando...');
+      debugPrint('📝 Modelo: $textoModelo');
+      debugPrint('🎤 Niño: $textoNino');
+      
+      final result = await _apiService.evaluateResponse(
+        textoModelo: textoModelo,
+        textoNino: textoNino,
+        umbral: 0.6,
+      );
+      
+      _evaluationMessage = result.mensaje;
+      _isCorrect = result.esCorrecta;
+      
+      debugPrint('✅ Resultado: ${result.mensaje}');
+      debugPrint('📊 Es correcta: ${result.esCorrecta}');
+      debugPrint('📈 Similitud: ${result.detalles['similitud']}');
+      
+      notifyListeners();
+    } catch (e) {
+      _evaluationMessage = 'Error al evaluar: ${e.toString()}';
+      _isCorrect = null;
+      notifyListeners();
+      debugPrint('❌ Error evaluando: $e');
+    } finally {
+      _setProcessing(false);
+    }
+  }
+
+  void clearEvaluation() {
+    _evaluationMessage = null;
+    _isCorrect = null;
+    notifyListeners();
   }
 
   @override
