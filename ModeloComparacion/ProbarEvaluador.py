@@ -1,4 +1,4 @@
-from evaluador import evaluar_respuesta
+from Evaluador import evaluar_respuesta
 
 def main():
     texto_modelo = (
@@ -7,7 +7,7 @@ def main():
         "y otros animales, y su papel en las actividades del entorno rural."
     )
 
-    texto_nino = "estoy observando una imagen de un burro."
+    texto_nino = "estoy observando una imagen de un burro en su entorno natural."
 
     resultado = evaluar_respuesta(texto_modelo, texto_nino, umbral=0.6)
 

@@ -1,6 +1,7 @@
 # main.py - FastAPI con configuración probada Python 3.11.9
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from PIL import Image
 import io
 import json
@@ -271,3 +272,83 @@ def process_audio_with_vosk(audio_file_path):
         raise Exception("Vosk no está instalado. Instala con: pip install vosk")
     except Exception as e:
         raise Exception(f"Error en Vosk: {str(e)}")
+
+
+# ============================================
+# ENDPOINT DE EVALUACIÓN
+# ============================================
+
+class EvaluacionRequest(BaseModel):
+    """Modelo para la petición de evaluación"""
+    texto_modelo: str
+    texto_nino: str
+    umbral: float = 0.6
+
+
+@app.post("/evaluate")
+async def evaluate(request: EvaluacionRequest):
+    """
+    Endpoint para evaluar si la respuesta del niño es correcta.
+    
+    - texto_modelo: El caption generado por BLIP
+    - texto_nino: El texto reconocido de la voz del niño
+    - umbral: Umbral de similitud (default: 0.6)
+    
+    Retorna:
+    - mensaje: "¡Felicidades, respuesta correcta!" o "¡Inténtalo de nuevo!"
+    - es_correcta: True/False
+    - detalles: Información adicional sobre la evaluación
+    """
+    print(f"\n🔍 Nueva petición de evaluación recibida")
+    print(f"📝 Texto modelo: {request.texto_modelo}")
+    print(f"🎤 Texto niño: {request.texto_nino}")
+    print(f"📊 Umbral: {request.umbral}")
+    
+    try:
+        from evaluador import evaluar_respuesta
+        
+        import time
+        start_time = time.time()
+        
+        # Evaluar la respuesta
+        resultado = evaluar_respuesta(
+            texto_modelo=request.texto_modelo,
+            texto_nino=request.texto_nino,
+            umbral=request.umbral
+        )
+        
+        processing_time = time.time() - start_time
+        
+        # Determinar el mensaje según el resultado
+        if resultado['es_correcta']:
+            mensaje = "¡Felicidades, respuesta correcta!"
+            print(f"✅ Respuesta correcta - Similitud: {resultado['similitud']:.4f}")
+        else:
+            mensaje = "¡Inténtalo de nuevo!"
+            print(f"❌ Respuesta incorrecta - Similitud: {resultado['similitud']:.4f}")
+        
+        return JSONResponse(content={
+            "mensaje": mensaje,
+            "es_correcta": resultado['es_correcta'],
+            "detalles": {
+                "sujeto_modelo": resultado['sujeto_modelo'],
+                "sujeto_nino": resultado['sujeto_nino'],
+                "sujeto_igual": resultado['sujeto_igual'],
+                "similitud": round(resultado['similitud'], 4),
+                "umbral": resultado['umbral']
+            },
+            "processing_time_seconds": round(processing_time, 2)
+        })
+        
+    except ImportError as e:
+        print(f"❌ Error: Módulo no disponible: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Evaluador no disponible. Instala: pip install sentence-transformers spacy && python -m spacy download es_core_news_sm"
+        )
+    except Exception as e:
+        print(f"❌ Error evaluando respuesta: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error evaluando respuesta: {str(e)}"
+        )
