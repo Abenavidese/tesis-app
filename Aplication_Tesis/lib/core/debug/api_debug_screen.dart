@@ -12,14 +12,17 @@ class ApiDebugScreen extends StatefulWidget {
 
 class _ApiDebugScreenState extends State<ApiDebugScreen> {
   String _currentUrl = ApiConstants.baseUrl;
-  String _testResult = '';
   bool _isLoading = false;
 
   Future<void> _testUrl(String url) async {
     setState(() {
       _isLoading = true;
-      _testResult = 'Probando $url...';
     });
+
+    String title = '';
+    String message = '';
+    Color iconColor = Colors.grey;
+    IconData icon = Icons.info;
 
     try {
       final response = await http.get(
@@ -29,23 +32,67 @@ class _ApiDebugScreenState extends State<ApiDebugScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        title = '✅ CONEXIÓN EXITOSA';
+        message = 'Respuesta: ${data['message']}\n\nURL: $url';
+        iconColor = Colors.green;
+        icon = Icons.check_circle;
+        
         setState(() {
-          _testResult = '✅ CONECTADO!\n\nRespuesta:\n${data['message']}\n\nUsa esta URL: $url';
+          _currentUrl = url;
         });
       } else {
-        setState(() {
-          _testResult = '⚠️ Respuesta: ${response.statusCode}\n$url';
-        });
+        title = '⚠️ RESPUESTA NO ESPERADA';
+        message = 'Código: ${response.statusCode}\n\nURL: $url';
+        iconColor = Colors.orange;
+        icon = Icons.warning;
       }
     } catch (e) {
-      setState(() {
-        _testResult = '❌ Error: $e\n$url';
-      });
+      title = '❌ ERROR DE CONEXIÓN';
+      message = 'No se pudo conectar al servidor.\n\nError: ${e.toString()}\n\nURL: $url';
+      iconColor = Colors.red;
+      icon = Icons.error;
     } finally {
       setState(() {
         _isLoading = false;
       });
+      
+      // Mostrar diálogo emergente
+      if (mounted) {
+        _showResultDialog(title, message, iconColor, icon);
+      }
     }
+  }
+
+  void _showResultDialog(String title, String message, Color iconColor, IconData icon) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(fontSize: 16, color: iconColor),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Text(
+            message,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('CERRAR'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -55,7 +102,7 @@ class _ApiDebugScreenState extends State<ApiDebugScreen> {
         title: const Text('Debug API'),
         backgroundColor: Colors.red[700],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,26 +136,10 @@ class _ApiDebugScreenState extends State<ApiDebugScreen> {
             const SizedBox(height: 16),
             
             if (_isLoading)
-              const Center(child: CircularProgressIndicator())
-            else
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[900],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey),
-                  ),
-                  child: SingleChildScrollView(
-                    child: Text(
-                      _testResult.isEmpty ? 'Presiona un botón para probar la conexión...' : _testResult,
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: CircularProgressIndicator(),
                 ),
               ),
             
@@ -132,6 +163,14 @@ class _ApiDebugScreenState extends State<ApiDebugScreen> {
                   Text('• IP real → Dispositivo físico'),
                 ],
               ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            const Text(
+              'ℹ️ Los resultados aparecerán en una ventana emergente',
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
