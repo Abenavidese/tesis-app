@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
 
 class VoiceResultDisplay extends StatelessWidget {
   final String? recognizedText;
@@ -19,47 +18,159 @@ class VoiceResultDisplay extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // Estado grabando
+    if (isRecording) {
+      return _buildRecordingCard();
+    }
+
+    // Estado procesando
+    if (isProcessing) {
+      return _buildProcessingCard();
+    }
+
+    // Resultado exitoso o error
+    final hasError = recognizedText?.contains('Error') == true;
+    if (hasError) {
+      return _buildErrorCard();
+    }
+
+    return _buildSuccessCard();
+  }
+
+  Widget _buildRecordingCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(top: 16),
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [
+            Colors.red[300]!.withOpacity(0.3),
+            Colors.red[500]!.withOpacity(0.3),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: _getBorderColor(),
+          color: Colors.red.withOpacity(0.6),
+          width: 3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              // Animación de pulso
+              TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 800),
+                tween: Tween(begin: 0.8, end: 1.2),
+                builder: (context, value, child) {
+                  return Container(
+                    width: 100 * value,
+                    height: 100 * value,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.2 / value),
+                      shape: BoxShape.circle,
+                    ),
+                  );
+                },
+                onEnd: () {},
+              ),
+              // GIF del búho grabando
+              Image.asset(
+                'assets/imagenes/owl-recording.gif',
+                width: 80,
+                height: 80,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'GRABANDO...',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            '🎤 Habla ahora, el búho está escuchando',
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.red,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProcessingCard() {
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFFFB74D).withOpacity(0.3),
+            const Color(0xFFFF8A65).withOpacity(0.3),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFFFB74D).withOpacity(0.6),
           width: 2,
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                _getIcon(),
-                color: _getIconColor(),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _getTitle(),
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: _getIconColor(),
-                  ),
-                ),
-              ),
-              if (isRecording)
-                _buildRecordingAnimation(),
-            ],
+          Image.asset(
+            'assets/imagenes/owl-predicting.gif',
+            width: 80,
+            height: 80,
           ),
-          const SizedBox(height: 12),
-          Text(
-            _getContent(),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textPrimary,
-              height: 1.4,
+          const SizedBox(height: 16),
+          const Text(
+            '⏳ Procesando audio...',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFE65100),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Convirtiendo tu voz en texto',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFFE65100),
             ),
           ),
         ],
@@ -67,57 +178,132 @@ class VoiceResultDisplay extends StatelessWidget {
     );
   }
 
-  Widget _buildRecordingAnimation() {
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(seconds: 1),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: Colors.red.withOpacity(value),
-            shape: BoxShape.circle,
+  Widget _buildErrorCard() {
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.red[300]!.withOpacity(0.2),
+            Colors.red[600]!.withOpacity(0.2),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.red.withOpacity(0.5),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.error_outline,
+            size: 60,
+            color: Colors.red,
           ),
-        );
-      },
-      onEnd: () {
-        // Restart animation if still recording
-      },
+          const SizedBox(height: 16),
+          const Text(
+            '¡Error en el reconocimiento!',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            recognizedText ?? 'Error desconocido',
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.red,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
-  Color _getBorderColor() {
-    if (isRecording) return Colors.red.withOpacity(0.5);
-    if (isProcessing) return Colors.orange.withOpacity(0.5);
-    if (recognizedText?.contains('Error') == true) return Colors.red.withOpacity(0.3);
-    return AppColors.primary.withOpacity(0.3);
-  }
-
-  Color _getIconColor() {
-    if (isRecording) return Colors.red;
-    if (isProcessing) return Colors.orange;
-    if (recognizedText?.contains('Error') == true) return Colors.red;
-    return AppColors.primary;
-  }
-
-  IconData _getIcon() {
-    if (isRecording) return Icons.mic;
-    if (isProcessing) return Icons.hourglass_empty;
-    if (recognizedText?.contains('Error') == true) return Icons.error;
-    return Icons.record_voice_over;
-  }
-
-  String _getTitle() {
-    if (isRecording) return 'Grabando...';
-    if (isProcessing) return 'Procesando audio...';
-    if (recognizedText?.contains('Error') == true) return 'Error en el reconocimiento';
-    return 'Texto reconocido';
-  }
-
-  String _getContent() {
-    if (isRecording) return 'Hable ahora para grabar su mensaje';
-    if (isProcessing) return 'Convirtiendo audio a texto...';
-    return recognizedText ?? 'Sin texto reconocido';
+  Widget _buildSuccessCard() {
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF8A65).withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFFFF8A65),
+                  const Color(0xFFFF7043),
+                ],
+              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.record_voice_over,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    '🎙️ Tu respuesta:',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                recognizedText ?? 'Sin texto reconocido',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFFE65100),
+                  height: 1.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

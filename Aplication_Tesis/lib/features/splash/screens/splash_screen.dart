@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_strings.dart';
+import 'dart:math' as math;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -9,158 +8,184 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-
+class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+  late AnimationController _bounceController;
+  late AnimationController _fadeController;
+  
   @override
   void initState() {
     super.initState();
     
-    _animationController = AnimationController(
+    // Bounce animation for loading dots
+    _bounceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    );
+      duration: const Duration(milliseconds: 1000),
+    )..repeat();
     
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
-    ));
+    // Fade in animation
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..forward();
     
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: const Interval(0.2, 0.8, curve: Curves.elasticOut),
-    ));
-
-    _animationController.forward();
-    
-    Future.delayed(const Duration(seconds: 3), () {
+    // Navigate after 5 seconds
+    Future.delayed(const Duration(seconds: 5), () {
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/home');
       }
     });
   }
-
+  
   @override
   void dispose() {
-    _animationController.dispose();
+    _bounceController.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isSmallScreen = size.width < 600;
+    
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black,
-              Color(0xFF1A1A1A),
-            ],
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedBuilder(
-                animation: _animationController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _scaleAnimation.value,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.primary.withOpacity(0.1),
-                          border: Border.all(
-                            color: AppColors.primary.withOpacity(0.3),
-                            width: 2,
-                          ),
-                        ),
-                        child: Image.asset(
-                          'assets/imagenes/logo_tesis.png',
-                          width: 120,
-                          height: 120,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(60),
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                size: 60,
-                                color: AppColors.textPrimary,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+      backgroundColor: Colors.white,
+      body: FadeTransition(
+        opacity: _fadeController,
+        child: Stack(
+          children: [
+            // Simple static background shapes
+            _buildSimpleBackground(),
+            
+            // Main content
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Title
+                  Text(
+                    'BúhoSense',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 40 : 56,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF558B2F),
+                      letterSpacing: 2,
+                      fontFamily: 'Arial',
                     ),
-                  );
-                },
+                  ),
+                  
+                  SizedBox(height: isSmallScreen ? 32 : 48),
+                  
+                  // Owl GIF
+                  Container(
+                    width: isSmallScreen ? 180 : 256,
+                    height: isSmallScreen ? 180 : 256,
+                    child: Image.asset(
+                      'assets/imagenes/buho.gif',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(
+                          Icons.flutter_dash,
+                          size: isSmallScreen ? 90 : 128,
+                          color: Color(0xFF558B2F),
+                        );
+                      },
+                    ),
+                  ),
+                  
+                  SizedBox(height: isSmallScreen ? 32 : 48),
+                  
+                  // Loading indicator
+                  _buildLoadingDots(),
+                ],
               ),
-              const SizedBox(height: 32),
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Column(
-                  children: [
-                    ShaderMask(
-                      shaderCallback: (bounds) => LinearGradient(
-                        colors: [
-                          AppColors.primary,
-                          AppColors.primary.withOpacity(0.8),
-                        ],
-                      ).createShader(bounds),
-                      child: const Text(
-                        'Tesis App',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      AppStrings.splashLoading,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: AppColors.primary.withOpacity(0.8),
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: 40,
-                      child: LinearProgressIndicator(
-                        backgroundColor: AppColors.primary.withOpacity(0.2),
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+  
+  Widget _buildSimpleBackground() {
+    return Stack(
+      children: [
+        // Static circles - no animation
+        Positioned(
+          top: 40,
+          left: 40,
+          child: Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Color(0xFF7CB342).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 100,
+          left: 60,
+          child: Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: Color(0xFF4CAF50).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        Positioned(
+          top: 80,
+          right: 64,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Color(0xFFFDD835).withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 64,
+          right: 100,
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Color(0xFFFDD835).withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  Widget _buildLoadingDots() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(3, (index) {
+        return AnimatedBuilder(
+          animation: _bounceController,
+          builder: (context, child) {
+            final offset = math.sin((_bounceController.value * 2 * math.pi) + (index * math.pi / 3)) * 8;
+            return Container(
+              margin: EdgeInsets.only(left: index > 0 ? 8 : 0),
+              child: Transform.translate(
+                offset: Offset(0, -offset.abs()),
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: Color(0xFF7CB342),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      }),
     );
   }
 }

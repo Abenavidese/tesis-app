@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/image_analysis.dart';
-import '../../../shared/widgets/loading_indicator.dart';
-import '../../../shared/widgets/error_message.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 
@@ -22,72 +20,236 @@ class ResultDisplay extends StatelessWidget {
     }
 
     if (analysis!.isLoading) {
-      return const LoadingIndicator(
-        message: AppStrings.consultingModel,
-      );
+      return _buildLoadingCard();
     }
 
     if (analysis!.hasError) {
-      return ErrorMessage(
-        message: analysis!.error!,
-        onRetry: onRetry,
-      );
+      return _buildErrorCard();
     }
 
     if (analysis!.hasCaption) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppColors.primary.withOpacity(0.3),
-            width: 1,
-          ),
+      return _buildSuccessCard(context);
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildLoadingCard() {
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF42A5F5).withOpacity(0.2),
+            const Color(0xFF1976D2).withOpacity(0.2),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.auto_awesome,
-                  color: AppColors.primary,
-                  size: 20,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF42A5F5).withOpacity(0.5),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        children: [
+          Image.asset(
+            'assets/imagenes/owl-predicting.gif',
+            width: 80,
+            height: 80,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '🔮 Analizando imagen...',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1976D2),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'El búho está pensando...',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF1976D2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorCard() {
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.red[300]!.withOpacity(0.2),
+            Colors.red[600]!.withOpacity(0.2),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.red.withOpacity(0.5),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.error_outline,
+            size: 60,
+            color: Colors.red,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '¡Ups! Algo salió mal',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            analysis!.error!,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.red,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Intentar de nuevo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuccessCard(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF7CB342).withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF7CB342),
+                  const Color(0xFF558B2F),
+                ],
+              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
                   child: Text(
-                    AppStrings.generatedDescription,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    '🦉 El búho dice:',
+                    style: TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              analysis!.caption,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary,
-                height: 1.4,
-              ),
+          ),
+          
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F8E9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    analysis!.caption,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF33691E),
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _formatTimestamp(analysis!.timestamp),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Generado: ${_formatTimestamp(analysis!.timestamp)}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textHint,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return const SizedBox.shrink();
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatTimestamp(DateTime timestamp) {
