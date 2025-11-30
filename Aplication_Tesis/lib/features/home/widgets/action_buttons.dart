@@ -31,7 +31,8 @@ class ActionButtons extends StatelessWidget {
                 assetImage: 'assets/imagenes/owl-load-file.png',
                 gradientColors: [const Color(0xFF42A5F5), const Color(0xFF1976D2)],
                 onPressed: homeProvider.onButton2Pressed,
-                isLoading: homeProvider.isProcessing,
+                provider: homeProvider,
+                isCurrentlyLoading: homeProvider.isLoadingGallery,
               ),
             ),
             const SizedBox(width: 12),
@@ -42,6 +43,8 @@ class ActionButtons extends StatelessWidget {
                 icon: Icons.bug_report,
                 gradientColors: [const Color(0xFF9C27B0), const Color(0xFF7B1FA2)],
                 onPressed: () => homeProvider.onButton3Pressed(context),
+                provider: homeProvider,
+                isCurrentlyLoading: false,
               ),
             ),
           ],
@@ -69,51 +72,54 @@ class ActionButtons extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: provider.isProcessing ? null : provider.takePicture,
+          onTap: provider.hasAnyProcessRunning ? null : provider.takePicture,
           borderRadius: BorderRadius.circular(24),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF7CB342),
-                  const Color(0xFF558B2F),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (provider.isProcessing)
-                  const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 3,
-                    ),
-                  )
-                else
-                  Image.asset(
-                    'assets/imagenes/owl-take-photo.png',
-                    width: 45,
-                    height: 45,
-                  ),
-                const SizedBox(width: 12),
-                const Text(
-                  '📸 TOMAR FOTO',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
+          child: Opacity(
+            opacity: provider.hasAnyProcessRunning && !provider.isTakingPhoto ? 0.5 : 1.0,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF7CB342),
+                    const Color(0xFF558B2F),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ],
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (provider.isTakingPhoto)
+                    const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 3,
+                      ),
+                    )
+                  else
+                    Image.asset(
+                      'assets/imagenes/owl-take-photo.png',
+                      width: 45,
+                      height: 45,
+                    ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '📸 TOMAR FOTO',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -128,8 +134,11 @@ class ActionButtons extends StatelessWidget {
     String? assetImage,
     required List<Color> gradientColors,
     required VoidCallback onPressed,
-    bool isLoading = false,
+    required HomeProvider provider,
+    bool isCurrentlyLoading = false,
   }) {
+    final isDisabled = provider.hasAnyProcessRunning && !isCurrentlyLoading;
+    
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -144,49 +153,52 @@ class ActionButtons extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isLoading ? null : onPressed,
+          onTap: isDisabled ? null : onPressed,
           borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: gradientColors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (isLoading)
-                  const SizedBox(
-                    width: 30,
-                    height: 30,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 3,
-                    ),
-                  )
-                else if (assetImage != null)
-                  Image.asset(
-                    assetImage,
-                    width: 35,
-                    height: 35,
-                  )
-                else if (icon != null)
-                  Icon(icon, color: Colors.white, size: 35),
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.center,
+          child: Opacity(
+            opacity: isDisabled ? 0.5 : 1.0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: gradientColors,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ],
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (isCurrentlyLoading)
+                    const SizedBox(
+                      width: 30,
+                      height: 30,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 3,
+                      ),
+                    )
+                  else if (assetImage != null)
+                    Image.asset(
+                      assetImage,
+                      width: 35,
+                      height: 35,
+                    )
+                  else if (icon != null)
+                    Icon(icon, color: Colors.white, size: 35),
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -196,6 +208,7 @@ class ActionButtons extends StatelessWidget {
 
   Widget _buildVoiceButton(HomeProvider provider) {
     final isRecording = provider.isRecording;
+    final isDisabled = provider.hasAnyProcessRunning && !provider.isProcessingAudio && !isRecording;
     
     return Container(
       decoration: BoxDecoration(
@@ -211,50 +224,53 @@ class ActionButtons extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: provider.isProcessing ? null : provider.onButton4Pressed,
+          onTap: isDisabled ? null : provider.onButton4Pressed,
           borderRadius: BorderRadius.circular(20),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isRecording
-                  ? [Colors.red[400]!, Colors.red[700]!]
-                  : [const Color(0xFFFF8A65), const Color(0xFFFF7043)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (provider.isProcessing)
-                  const SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 3,
-                    ),
-                  )
-                else
-                  Image.asset(
-                    'assets/imagenes/owl-recording.gif',
-                    width: 38,
-                    height: 38,
-                  ),
-                const SizedBox(width: 12),
-                Text(
-                  isRecording ? '⏹️ DETENER' : '🎤 GRABAR VOZ',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
+          child: Opacity(
+            opacity: isDisabled ? 0.5 : 1.0,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isRecording
+                    ? [Colors.red[400]!, Colors.red[700]!]
+                    : [const Color(0xFFFF8A65), const Color(0xFFFF7043)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ],
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (provider.isProcessingAudio && !isRecording)
+                    const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 3,
+                      ),
+                    )
+                  else
+                    Image.asset(
+                      'assets/imagenes/owl-recording.gif',
+                      width: 38,
+                      height: 38,
+                    ),
+                  const SizedBox(width: 12),
+                  Text(
+                    isRecording ? '⏹️ DETENER' : '🎤 GRABAR VOZ',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

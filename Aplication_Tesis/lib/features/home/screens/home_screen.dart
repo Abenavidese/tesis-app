@@ -365,39 +365,52 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: _provider.isProcessing ? null : () => _provider.evaluateAnswer(),
+            onTap: _provider.hasAnyProcessRunning ? null : () => _provider.evaluateAnswer(),
             borderRadius: BorderRadius.circular(20),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.purple[400]!,
-                    Colors.purple[600]!,
+            child: Opacity(
+              opacity: _provider.hasAnyProcessRunning && !_provider.isEvaluating ? 0.5 : 1.0,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.purple[400]!,
+                      Colors.purple[600]!,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_provider.isEvaluating)
+                      const SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
+                      )
+                    else
+                      Image.asset(
+                        'assets/imagenes/owl-evaluate.gif',
+                        width: 40,
+                        height: 40,
+                      ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      '✨ EVALUAR RESPUESTA',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    'assets/imagenes/owl-evaluate.gif',
-                    width: 40,
-                    height: 40,
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    '✨ EVALUAR RESPUESTA',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
               ),
             ),
           ),

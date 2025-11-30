@@ -15,7 +15,11 @@ class HomeProvider extends ChangeNotifier {
 
   ImageAnalysis? _currentAnalysis;
   bool _isProcessing = false;
+  bool _isTakingPhoto = false;
+  bool _isLoadingGallery = false;
+  bool _isEvaluating = false;
   bool _isRecording = false;
+  bool _isProcessingAudio = false;
   String? _recognizedText;
   bool _audioInitialized = false;
   String? _evaluationMessage;
@@ -23,11 +27,18 @@ class HomeProvider extends ChangeNotifier {
 
   ImageAnalysis? get currentAnalysis => _currentAnalysis;
   bool get isProcessing => _isProcessing;
+  bool get isTakingPhoto => _isTakingPhoto;
+  bool get isLoadingGallery => _isLoadingGallery;
+  bool get isEvaluating => _isEvaluating;
+  bool get isProcessingAudio => _isProcessingAudio;
   bool get hasImage => _currentAnalysis?.imageFile != null;
   bool get isRecording => _isRecording;
   String? get recognizedText => _recognizedText;
   String? get evaluationMessage => _evaluationMessage;
   bool? get isCorrect => _isCorrect;
+  
+  // Indica si hay algún proceso en curso que debe deshabilitar otros botones
+  bool get hasAnyProcessRunning => _isTakingPhoto || _isLoadingGallery || _isEvaluating || _isProcessingAudio;
   
   bool get canEvaluate => 
       _currentAnalysis?.caption != null && 
@@ -38,11 +49,13 @@ class HomeProvider extends ChangeNotifier {
 
   Future<void> takePicture() async {
     try {
+      _isTakingPhoto = true;
       _setProcessing(true);
       clearEvaluation(); // Limpiar evaluación anterior
       
       final File? imageFile = await _cameraService.takePicture();
       if (imageFile == null) {
+        _isTakingPhoto = false;
         _setProcessing(false);
         return;
       }
@@ -61,6 +74,7 @@ class HomeProvider extends ChangeNotifier {
     } catch (e) {
       _handleError('Error al tomar la foto: ${e.toString()}');
     } finally {
+      _isTakingPhoto = false;
       _setProcessing(false);
     }
   }
@@ -108,10 +122,12 @@ class HomeProvider extends ChangeNotifier {
   // Button actions - Load image from gallery
   Future<void> onButton2Pressed() async {
     try {
+      _isLoadingGallery = true;
       _setProcessing(true);
       
       final File? imageFile = await _cameraService.pickFromGallery();
       if (imageFile == null) {
+        _isLoadingGallery = false;
         _setProcessing(false);
         return;
       }
@@ -130,6 +146,7 @@ class HomeProvider extends ChangeNotifier {
     } catch (e) {
       _handleError('Error al cargar imagen: ${e.toString()}');
     } finally {
+      _isLoadingGallery = false;
       _setProcessing(false);
     }
   }
@@ -158,9 +175,11 @@ class HomeProvider extends ChangeNotifier {
       
       // Inicializar el servicio si no está inicializado
       if (!_audioInitialized) {
+        _isProcessingAudio = true;
         _setProcessing(true);
         final initialized = await _audioService.initialize();
         _audioInitialized = initialized;
+        _isProcessingAudio = false;
         _setProcessing(false);
         
         if (!initialized) {
@@ -188,6 +207,7 @@ class HomeProvider extends ChangeNotifier {
 
   Future<void> stopRecording() async {
     try {
+      _isProcessingAudio = true;
       _setProcessing(true);
       
       final recognizedText = await _audioService.stopRecording();
@@ -208,6 +228,7 @@ class HomeProvider extends ChangeNotifier {
       notifyListeners();
       debugPrint('❌ Error deteniendo grabación: $e');
     } finally {
+      _isProcessingAudio = false;
       _setProcessing(false);
     }
   }
@@ -219,6 +240,7 @@ class HomeProvider extends ChangeNotifier {
     }
 
     try {
+      _isEvaluating = true;
       _setProcessing(true);
       _evaluationMessage = null;
       _isCorrect = null;
@@ -250,6 +272,7 @@ class HomeProvider extends ChangeNotifier {
       notifyListeners();
       debugPrint('❌ Error evaluando: $e');
     } finally {
+      _isEvaluating = false;
       _setProcessing(false);
     }
   }
