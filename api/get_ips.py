@@ -12,9 +12,9 @@ def get_local_ips():
     ips = []
     
     try:
-        # Obtener IP principal
+        # Obtener  princal
         hostname = socket.gethostname()
-        local_ip = socket.gethostbyname(hostname)
+        local_ = socket.gethostbyname(hostname)
         ips.append(f"IP Principal: {local_ip}")
         
         # Obtener todas las interfaces de red
