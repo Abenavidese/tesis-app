@@ -3,7 +3,7 @@ class ApiConstants {
   static const String _localhostUrl = 'http://127.0.0.1:8000';
   static const String _androidEmulatorUrl = 'http://10.0.2.2:8000'; // ✅ CONFIRMADO QUE FUNCIONA
   static const String _iosSimulatorUrl = 'http://localhost:8000';
-  static const String _physicalDeviceUrl = 'http://10.126.129.236:8000'; // 🔥 IP ACTUAL (ejecuta: ipconfig → copia IPv4 del WiFi)
+  static const String _physicalDeviceUrl = 'http://172.16.212.155:8000'; // 🔥 IP ACTUAL (ejecuta: ipconfig → copia IPv4 del WiFi)
   
   // URL principal - CAMBIA SEGÚN EL DISPOSITIVO
   static const String baseUrl = _physicalDeviceUrl; // 🔥 CONFIGURADO PARA CELULAR FÍSICO

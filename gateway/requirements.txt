@@ -1,0 +1,7 @@
+# gateway/requirements.txt - Dependencias del API Gateway
+
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+httpx==0.26.0
+pydantic==2.5.3
+pyserial==3.5

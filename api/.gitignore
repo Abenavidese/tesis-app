@@ -1,3 +1,48 @@
+# Entorno virtual
 .venv311/
+.venv/
+venv/
+
+# Variables de entorno
+.env
+.env.local
+
+# Modelos grandes
 blip-final-5/
+blip-final-5-onnx/
+bliputf-esp-*/
+vosk-model-*/
+
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+env/
+venv/
+.Python
+
+# Archivos temporales
+*.log
+*.tmp
+*.temp
+test_image.jpg
+test_image.png
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+*.bak
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
