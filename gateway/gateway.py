@@ -65,6 +65,18 @@ class BluetoothConfig(BaseModel):
     baudrate: Optional[int] = 115200
 
 
+class QuizRequest(BaseModel):
+    """Modelo para la petición de generación de quiz"""
+    title_correct: str
+    caption: str
+
+
+class QuizValidationRequest(BaseModel):
+    """Modelo para validación de respuesta de quiz"""
+    respuesta_usuario: str
+    respuesta_correcta: str
+
+
 # ============================================
 # FUNCIONES BLUETOOTH
 # ============================================
@@ -187,6 +199,9 @@ def root():
         "endpoints": {
             "predict": "POST /predict - Genera caption para una imagen (proxy al servidor ML)",
             "evaluate": "POST /evaluate - Evalúa respuesta y controla ESP32",
+            "generate_quiz": "POST /generate-quiz - Genera quiz de opción múltiple",
+            "validate_quiz": "POST /validate-quiz - Valida respuesta del quiz",
+            "validar_reto": "POST /validar-reto - Valida imagen en juego interactivo",
             "health": "GET /health - Verifica estado del sistema",
             "configure_esp32": "POST /configure_esp32 - Configura conexión ESP32"
         }
@@ -335,6 +350,193 @@ async def evaluate_proxy(request: EvaluacionRequest):
             status_code=500,
             detail=f"Error en gateway: {str(e)}"
         )
+async def generate_quiz_proxy(request: QuizRequest):
+    """
+    Proxy para /generate-quiz - Genera un quiz de opción múltiple
+    """
+    print(f"\n🎯 GATEWAY /generate-quiz - Título: {request.title_correct}")
+    
+    try:
+        # Enviar al servidor ML
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{MODEL_SERVER_URL}/generate-quiz",
+                json={
+                    "title_correct": request.title_correct,
+                    "caption": request.caption
+                }
+            )
+        
+        # Verificar respuesta
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Error del servidor ML: {response.text}"
+            )
+        
+        result = response.json()
+        print(f"✅ GATEWAY - Quiz generado con {len(result.get('choices', []))} opciones")
+        
+        return JSONResponse(
+            content=result,
+            media_type="application/json; charset=utf-8"
+        )
+        
+    except httpx.TimeoutException:
+        print("❌ GATEWAY - Timeout conectando al servidor ML")
+        raise HTTPException(
+            status_code=504,
+            detail="Timeout conectando al servidor ML"
+        )
+    except Exception as e:
+        print(f"❌ GATEWAY - Error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en gateway: {str(e)}"
+        )
+
+
+@app.post("/validate-quiz")
+async def validate_quiz_proxy(request: QuizValidationRequest):
+    """
+    Proxy para /validate-quiz - Valida la respuesta del usuario en el quiz
+    """
+    print(f"\n🔍 GATEWAY /validate-quiz - Respuesta: {request.respuesta_usuario}")
+    
+    try:
+        # Enviar al servidor ML
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{MODEL_SERVER_URL}/validate-quiz",
+                json={
+                    "respuesta_usuario": request.respuesta_usuario,
+                    "respuesta_correcta": request.respuesta_correcta
+                }
+            )
+        
+        # Verificar respuesta
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Error del servidor ML: {response.text}"
+            )
+        
+        result = response.json()
+        es_correcta = result.get('es_correcta', False)
+        
+        print(f"   Resultado: {'✅ CORRECTA' if es_correcta else '❌ INCORRECTA'}")
+        
+        # Enviar señal al ESP32 según el resultado
+        esp32_sent = False
+        if es_correcta:
+            print("🔵 Enviando señal 'b' (correcto) al ESP32...")
+            esp32_sent = await send_to_esp32("b")
+        else:
+            print("🔵 Enviando señal 'm' (incorrecto) al ESP32...")
+            esp32_sent = await send_to_esp32("m")
+        
+        # Agregar info sobre el ESP32 en la respuesta
+        result['esp32_signal_sent'] = esp32_sent
+        result['esp32_message'] = 'b' if es_correcta else 'm'
+        
+        return JSONResponse(
+            content=result,
+            media_type="application/json; charset=utf-8"
+        )
+        
+    except httpx.TimeoutException:
+        print("❌ GATEWAY - Timeout conectando al servidor ML")
+        raise HTTPException(
+            status_code=504,
+            detail="Timeout conectando al servidor ML"
+        )
+    except Exception as e:
+        print(f"❌ GATEWAY - Error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en gateway: {str(e)}"
+        )
+
+
+@app.post("/validar-reto")
+async def validar_reto_proxy(
+    sujeto_solicitado: str,
+    image: UploadFile = File(...),
+    umbral: float = 0.7
+):
+    """
+    Proxy para /validar-reto - Valida si la imagen corresponde al sujeto solicitado
+    en el juego interactivo
+    """
+    print(f"\n🎮 GATEWAY /validar-reto - Solicitado: '{sujeto_solicitado}'")
+    
+    try:
+        # Leer la imagen
+        image_bytes = await image.read()
+        
+        # Preparar el archivo para enviarlo al servidor ML
+        files = {
+            'image': (image.filename, image_bytes, image.content_type)
+        }
+        
+        # Preparar los datos del form
+        data = {
+            'sujeto_solicitado': sujeto_solicitado,
+            'umbral': str(umbral)
+        }
+        
+        # Enviar al servidor ML
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{MODEL_SERVER_URL}/validar-reto",
+                files=files,
+                data=data
+            )
+        
+        # Verificar respuesta
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Error del servidor ML: {response.text}"
+            )
+        
+        result = response.json()
+        es_correcto = result.get('es_correcto', False)
+        
+        print(f"   Detectado: '{result.get('sujeto_detectado', 'N/A')}'")
+        print(f"   Resultado: {'✅ CORRECTO' if es_correcto else '❌ INCORRECTO'}")
+        
+        # Enviar señal al ESP32 según el resultado
+        esp32_sent = False
+        if es_correcto:
+            print("🔵 Enviando señal 'b' (correcto) al ESP32...")
+            esp32_sent = await send_to_esp32("b")
+        else:
+            print("🔵 Enviando señal 'm' (incorrecto) al ESP32...")
+            esp32_sent = await send_to_esp32("m")
+        
+        # Agregar info sobre el ESP32 en la respuesta
+        result['esp32_signal_sent'] = esp32_sent
+        result['esp32_message'] = 'b' if es_correcto else 'm'
+        
+        return JSONResponse(
+            content=result,
+            media_type="application/json; charset=utf-8"
+        )
+        
+    except httpx.TimeoutException:
+        print("❌ GATEWAY - Timeout conectando al servidor ML")
+        raise HTTPException(
+            status_code=504,
+            detail="Timeout conectando al servidor ML"
+        )
+    except Exception as e:
+        print(f"❌ GATEWAY - Error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en gateway: {str(e)}"
+        )
+
 
 
 @app.post("/configure_esp32")

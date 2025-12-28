@@ -70,11 +70,21 @@ ESP32_BAUDRATE = 115200
 
 ## 📡 Endpoints
 
+### Endpoints Básicos
 - `GET /` - Información del gateway
 - `GET /health` - Estado del sistema
 - `GET /ping` - Test de conectividad
+
+### Endpoints de Predicción y Evaluación
 - `POST /predict` - Generar caption (proxy al servidor ML)
 - `POST /evaluate` - Evaluar respuesta + control ESP32
+
+### Endpoints de Juegos
+- `POST /generate-quiz` - Genera quiz de opción múltiple
+- `POST /validate-quiz` - Valida respuesta del quiz + control ESP32
+- `POST /validar-reto` - Valida imagen en juego interactivo + control ESP32
+
+### Endpoints de Configuración
 - `POST /configure_esp32` - Configurar ESP32
 - `POST /test_esp32` - Probar conexión ESP32
 

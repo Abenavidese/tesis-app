@@ -222,6 +222,108 @@ async def evaluate(request: EvaluacionRequest):
 
 
 # ============================================
+# ENDPOINT DE JUEGO INTERACTIVO
+# ============================================
+
+class ValidarRetoRequest(BaseModel):
+    """Modelo para validación de reto interactivo"""
+    sujeto_solicitado: str
+    umbral: float = 0.7
+
+
+@app.post("/validar-reto")
+async def validar_reto(
+    sujeto_solicitado: str,
+    image: UploadFile = File(...),
+    umbral: float = 0.7
+):
+    """
+    Valida si la imagen corresponde al sujeto solicitado en el juego interactivo.
+    
+    Flujo:
+    1. Recibe imagen y sujeto solicitado (ej: "caballo", "burro")
+    2. Genera descripción completa con BLIP
+    3. Extrae el sujeto de la descripción
+    4. Compara con el sujeto solicitado
+    5. Devuelve: correcto, sujeto_detectado, descripcion_completa
+    
+    Args:
+    - image: Imagen a analizar
+    - sujeto_solicitado: El sujeto que se le pidió al niño (ej: "caballo")
+    - umbral: Umbral de similitud para validación (default: 0.7)
+    
+    Returns:
+    - es_correcto: True si el sujeto detectado coincide con el solicitado
+    - sujeto_solicitado: Sujeto que se le pidió al niño
+    - sujeto_detectado: Sujeto extraído de la imagen
+    - descripcion_completa: Caption completo generado por BLIP
+    - similitud: Similitud semántica entre los sujetos
+    """
+    print(f"\n🎮 /validar-reto - Solicitado: '{sujeto_solicitado}'")
+    
+    try:
+        # 1. Validar imagen
+        file_bytes = await image.read()
+        pil_image = Image.open(io.BytesIO(file_bytes))
+        
+        # 2. Generar descripción completa con BLIP
+        import time
+        start_time = time.time()
+        
+        descripcion_completa = quick_generate(pil_image)
+        
+        # 3. Extraer sujeto de la descripción
+        from activities.evaluator_game import obtener_sujeto, similitud_semantica
+        
+        sujeto_detectado = obtener_sujeto(descripcion_completa)
+        
+        # 4. Comparar sujetos
+        if sujeto_detectado and sujeto_solicitado:
+            # Normalizar para comparación
+            sujeto_solicitado_norm = sujeto_solicitado.lower().strip()
+            sujeto_detectado_norm = sujeto_detectado.lower().strip()
+            
+            # Comparación exacta o similitud semántica
+            if sujeto_solicitado_norm == sujeto_detectado_norm:
+                es_correcto = True
+                similitud = 1.0
+            else:
+                similitud = similitud_semantica(sujeto_solicitado_norm, sujeto_detectado_norm)
+                es_correcto = similitud >= umbral
+        else:
+            es_correcto = False
+            similitud = 0.0
+        
+        processing_time = time.time() - start_time
+        
+        # 5. Preparar respuesta
+        mensaje = "¡Correcto! 🎉" if es_correcto else "¡Inténtalo de nuevo!"
+        
+        print(f"{'✅' if es_correcto else '❌'} {processing_time:.2f}s - Detectado: '{sujeto_detectado}' - Similitud: {similitud:.3f}")
+        
+        return JSONResponse(
+            content={
+                "es_correcto": es_correcto,
+                "mensaje": mensaje,
+                "sujeto_solicitado": sujeto_solicitado,
+                "sujeto_detectado": sujeto_detectado,
+                "descripcion_completa": descripcion_completa,
+                "similitud": round(similitud, 4),
+                "umbral": umbral,
+                "processing_time_seconds": round(processing_time, 2)
+            },
+            media_type="application/json; charset=utf-8"
+        )
+        
+    except Exception as e:
+        print(f"❌ Error validando reto: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error validando reto: {str(e)}"
+        )
+
+
+# ============================================
 # ENDPOINT DE QUIZ
 # ============================================
 
