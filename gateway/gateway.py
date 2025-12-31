@@ -1,5 +1,5 @@
 # gateway.py - API Gateway para manejar peticiones del celular y comunicación con ESP32
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -350,6 +350,9 @@ async def evaluate_proxy(request: EvaluacionRequest):
             status_code=500,
             detail=f"Error en gateway: {str(e)}"
         )
+
+
+@app.post("/generate-quiz")
 async def generate_quiz_proxy(request: QuizRequest):
     """
     Proxy para /generate-quiz - Genera un quiz de opción múltiple
@@ -460,9 +463,9 @@ async def validate_quiz_proxy(request: QuizValidationRequest):
 
 @app.post("/validar-reto")
 async def validar_reto_proxy(
-    sujeto_solicitado: str,
     image: UploadFile = File(...),
-    umbral: float = 0.7
+    sujeto_solicitado: str = Form(...),
+    umbral: float = Form(0.7)
 ):
     """
     Proxy para /validar-reto - Valida si la imagen corresponde al sujeto solicitado

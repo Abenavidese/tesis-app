@@ -198,16 +198,67 @@ class ChallengeProvider with ChangeNotifier {
 
   // ============ RETO 3: SELECCIÓN DE IMAGEN ============
   
-  // Cargar 4 imágenes aleatorias (1 correcta + 3 distractores)
+  // Cargar 4 imágenes aleatorias (1 correcta + 3 distractores de temas diferentes)
   Future<void> loadImageOptions() async {
     try {
       final targetSubject = currentChallenge.targetSubject;
       final random = Random();
       
-      // Mapeo de imágenes disponibles por sujeto (rutas de assets)
+      // Mapeo completo de imágenes disponibles por tema
       final Map<String, List<String>> imageMap = {
-        'gato': List.generate(8, (i) => 'lib/features/activities/activity3/images/gato_${i + 1}.jpg'),
-        'burro': List.generate(6, (i) => 'lib/features/activities/activity3/images/burro_${i + 1}.jpg'),
+        // Animales
+        'gato': List.generate(3, (i) => 'lib/features/activities/activity3/images/gato_${i + 1}.jpg'),
+        'perro': List.generate(3, (i) => 'lib/features/activities/activity3/images/perro_${i + 1}.jpg'),
+        'burro': List.generate(3, (i) => 'lib/features/activities/activity3/images/burro_${i + 1}.jpg'),
+        'caballo': List.generate(3, (i) => 'lib/features/activities/activity3/images/caballo_${i + 1}.jpg'),
+        'cebra': List.generate(3, (i) => 'lib/features/activities/activity3/images/cebra_${i + 1}.jpg'),
+        'leon': List.generate(3, (i) => 'lib/features/activities/activity3/images/leon_${i + 1}.jpg'),
+        'tigre': List.generate(3, (i) => 'lib/features/activities/activity3/images/tigre_${i + 1}.jpg'),
+        'elefante': List.generate(3, (i) => 'lib/features/activities/activity3/images/elefante_${i + 1}.jpg'),
+        'jirafa': List.generate(3, (i) => 'lib/features/activities/activity3/images/jirafa_${i + 1}.jpg'),
+        'mono': List.generate(3, (i) => 'lib/features/activities/activity3/images/mono_${i + 1}.jpg'),
+        'oso': List.generate(3, (i) => 'lib/features/activities/activity3/images/oso_${i + 1}.jpg'),
+        'lobo': List.generate(3, (i) => 'lib/features/activities/activity3/images/lobo_${i + 1}.jpg'),
+        'cocodrilo': List.generate(3, (i) => 'lib/features/activities/activity3/images/cocodrilo_${i + 1}.jpg'),
+        'conejo': List.generate(3, (i) => 'lib/features/activities/activity3/images/conejo_${i + 1}.jpg'),
+        'vaca': List.generate(3, (i) => 'lib/features/activities/activity3/images/vaca_${i + 1}.jpg'),
+        'oveja': List.generate(3, (i) => 'lib/features/activities/activity3/images/oveja_${i + 1}.jpg'),
+        'gallina': List.generate(3, (i) => 'lib/features/activities/activity3/images/gallina_${i + 1}.jpg'),
+        'rana': List.generate(3, (i) => 'lib/features/activities/activity3/images/rana_${i + 1}.png'),
+        'mariposa': List.generate(3, (i) => 'lib/features/activities/activity3/images/mariposa_${i + 1}.png'),
+        
+        // Accidentes geográficos
+        'montana': List.generate(3, (i) => 'lib/features/activities/activity3/images/montana_${i + 1}.jpg'),
+        'glaciar': List.generate(3, (i) => 'lib/features/activities/activity3/images/glaciar_${i + 1}.jpg'),
+        'desierto': List.generate(3, (i) => 'lib/features/activities/activity3/images/desierto_${i + 1}.jpg'),
+        'isla': List.generate(3, (i) => 'lib/features/activities/activity3/images/isla_${i + 1}.jpg'),
+        'volcan': ['lib/features/activities/activity3/images/volcan_1.png', 'lib/features/activities/activity3/images/volcan_2.jpg', 'lib/features/activities/activity3/images/volcan_3.jpg'],
+        
+        // Sistemas del cuerpo humano
+        'circulatorio': List.generate(3, (i) => 'lib/features/activities/activity3/images/circulatorio_${i + 1}.png'),
+        'digestivo': List.generate(3, (i) => 'lib/features/activities/activity3/images/digestivo_${i + 1}.png'),
+        'respiratorio': List.generate(3, (i) => 'lib/features/activities/activity3/images/respiratorio_${i + 1}.png'),
+        'locomotor': List.generate(3, (i) => 'lib/features/activities/activity3/images/locomotor_${i + 1}.png'),
+        
+        // Hábitos de higiene
+        'cepillandose': List.generate(3, (i) => 'lib/features/activities/activity3/images/cepillandose_${i + 1}.png'),
+        'lavandose_manos': List.generate(3, (i) => 'lib/features/activities/activity3/images/lavandose_manos_${i + 1}.png'),
+        'peinandose': List.generate(3, (i) => 'lib/features/activities/activity3/images/peinandose_${i + 1}.png'),
+        
+        // Responsabilidades/Actividades diarias
+        'cuidar_mascota': List.generate(3, (i) => 'lib/features/activities/activity3/images/cuidar_mascota_${i + 1}.png'),
+        'regar_plantas': List.generate(3, (i) => 'lib/features/activities/activity3/images/regar_plantas_${i + 1}.png'),
+        'sacar_basura': List.generate(3, (i) => 'lib/features/activities/activity3/images/sacar_basura_${i + 1}.png'),
+        
+        // Temas diversos
+        'alimentacion': List.generate(3, (i) => 'lib/features/activities/activity3/images/alimentacion_${i + 1}.png'),
+        'salud': List.generate(3, (i) => 'lib/features/activities/activity3/images/salud_${i + 1}.png'),
+        'descanso': List.generate(3, (i) => 'lib/features/activities/activity3/images/descanso_${i + 1}.png'),
+        'educacion': List.generate(3, (i) => 'lib/features/activities/activity3/images/educacion_${i + 1}.png'),
+        'vivienda': List.generate(3, (i) => 'lib/features/activities/activity3/images/vivienda_${i + 1}.png'),
+        'basilica': List.generate(3, (i) => 'lib/features/activities/activity3/images/basilica_${i + 1}.jpeg'),
+        'cumple': List.generate(3, (i) => 'lib/features/activities/activity3/images/cumple_${i + 1}.png'),
+        'navidad': List.generate(3, (i) => 'lib/features/activities/activity3/images/navidad_${i + 1}.png'),
       };
       
       // Obtener todas las categorías disponibles
@@ -223,30 +274,33 @@ class ChallengeProvider with ChangeNotifier {
       
       final correctImage = correctImages[random.nextInt(correctImages.length)];
       
-      // Seleccionar 3 imágenes distractoras de otros sujetos
-      final distractorImages = <String>[];
+      // Seleccionar 3 temas diferentes para los distractores (sin repetir el tema correcto)
       final otherSubjects = availableSubjects.where((s) => s != targetSubject).toList();
+      otherSubjects.shuffle(random);
       
+      final distractorImages = <String>[];
+      final usedSubjects = <String>{}; // Para asegurar que no se repitan temas
+      
+      // Seleccionar 3 distractores de 3 temas diferentes
       for (var subject in otherSubjects) {
+        if (distractorImages.length >= 3) break;
+        if (usedSubjects.contains(subject)) continue;
+        
         final subjectImages = imageMap[subject] ?? [];
         if (subjectImages.isNotEmpty) {
           distractorImages.add(subjectImages[random.nextInt(subjectImages.length)]);
+          usedSubjects.add(subject);
         }
       }
       
-      // Si no hay suficientes distractores, agregar más del mismo sujeto distractor
-      while (distractorImages.length < 3 && otherSubjects.isNotEmpty) {
-        final subject = otherSubjects[random.nextInt(otherSubjects.length)];
-        final subjectImages = imageMap[subject] ?? [];
-        if (subjectImages.isNotEmpty) {
-          final img = subjectImages[random.nextInt(subjectImages.length)];
-          if (!distractorImages.contains(img)) {
-            distractorImages.add(img);
-          }
-        }
+      // Si por alguna razón no tenemos suficientes distractores, completar con los disponibles
+      if (distractorImages.length < 3) {
+        _errorMessage = 'No hay suficientes imágenes diferentes para crear el reto';
+        notifyListeners();
+        return;
       }
       
-      // Mezclar las imágenes
+      // Mezclar las 4 imágenes (1 correcta + 3 distractores de temas diferentes)
       _imageOptions = [correctImage, ...distractorImages]..shuffle(random);
       _correctImageIndex = _imageOptions.indexOf(correctImage);
       _selectedImageIndex = null;
