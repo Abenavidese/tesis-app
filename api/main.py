@@ -173,7 +173,7 @@ async def evaluate(request: EvaluacionRequest):
     print(f"\n🔍 /evaluate - Umbral: {request.umbral}")
     
     try:
-        from activities import evaluar_respuesta
+        from evaluador import evaluar_respuesta
         
         import time
         start_time = time.time()

@@ -28,20 +28,37 @@ def similitud_semantica(texto1: str, texto2: str) -> float:
 def obtener_sujeto(frase: str):
     """
     Obtiene el sujeto SEMÁNTICO de la frase:
-    el sustantivo importante (burro, avión, río, montaña, etc.).
+    el sustantivo importante (burro, avión, río, montaña, sistema circulatorio, etc.).
+    Captura sustantivos compuestos completos (noun chunks).
     No se usa el sujeto gramatical (yo, tú, él).
     """
     doc = nlp(frase)
     candidatos = []
+    
+    print(f"\n🔍 DEBUG - Analizando frase: '{frase}'")
 
+    # Primero intentar con noun chunks completos (captura "sistema circulatorio", "aparato digestivo", etc.)
     for chunk in doc.noun_chunks:
+        print(f"  📦 Chunk detectado: '{chunk.text}' | root: {chunk.root.text} | root.pos_: {chunk.root.pos_}")
+        
+        # Filtrar palabras genéricas del chunk
+        palabras_importantes = []
         for token in chunk:
-            if token.pos_ in ("NOUN", "PROPN") and not token.is_stop:
+            print(f"    - Token: '{token.text}' | lemma: '{token.lemma_}' | pos: {token.pos_} | is_stop: {token.is_stop}")
+            if token.pos_ in ("NOUN", "PROPN", "ADJ") and not token.is_stop:
                 lema = token.lemma_.lower()
                 if lema not in GENERICOS:
-                    candidatos.append((token.i, lema))
+                    palabras_importantes.append(lema)
+        
+        if palabras_importantes:
+            # Unir palabras importantes del chunk (ej: "sistema circulatorio")
+            sujeto_compuesto = " ".join(palabras_importantes)
+            print(f"  ✅ Candidato encontrado: '{sujeto_compuesto}'")
+            candidatos.append((chunk.start, sujeto_compuesto))
 
+    # Si no encontramos chunks, buscar sustantivos individuales
     if not candidatos:
+        print("  ⚠️ No se encontraron chunks, buscando sustantivos individuales...")
         for token in doc:
             if token.pos_ in ("NOUN", "PROPN") and not token.is_stop:
                 lema = token.lemma_.lower()
@@ -49,10 +66,14 @@ def obtener_sujeto(frase: str):
                     candidatos.append((token.i, lema))
 
     if not candidatos:
+        print("  ❌ No se encontraron candidatos")
         return None
 
+    # Retornar el primer candidato (más a la izquierda en la frase)
     candidatos.sort(key=lambda x: x[0])
-    return candidatos[0][1]
+    resultado = candidatos[0][1]
+    print(f"  🎯 Sujeto extraído: '{resultado}'\n")
+    return resultado
 
 
 def evaluar_respuesta(texto_modelo: str, texto_nino: str, umbral: float = 0.6):
