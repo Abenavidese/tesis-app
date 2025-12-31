@@ -173,17 +173,21 @@ class HomeProvider extends ChangeNotifier {
     try {
       clearEvaluation(); // Limpiar evaluación anterior
       
-      // Inicializar el servicio si no está inicializado
+      // Inicializar solo si no está inicializado
       if (!_audioInitialized) {
         _isProcessingAudio = true;
         _setProcessing(true);
+        
         final initialized = await _audioService.initialize();
         _audioInitialized = initialized;
+        
         _isProcessingAudio = false;
         _setProcessing(false);
         
         if (!initialized) {
           debugPrint('❌ No se pudo inicializar el servicio de audio');
+          _recognizedText = 'Error: No se pudo inicializar el micrófono. Verifica permisos y conexión a internet.';
+          notifyListeners();
           return;
         }
       }
@@ -195,11 +199,32 @@ class HomeProvider extends ChangeNotifier {
       final success = await _audioService.startRecording();
       if (!success) {
         _isRecording = false;
+        
+        // Obtener diagnóstico para determinar causa del fallo
+        final diagnostics = await _audioService.getDiagnostics();
+        final hasError = diagnostics['hasError'] == true;
+        
+        if (hasError) {
+          _recognizedText = 
+            '❌ ERROR: Sin conexión a Internet\n\n'
+            'El reconocimiento de voz de Google NECESITA:\n\n'
+            '📡 Conexión a Internet activa (WiFi o datos)\n'
+            '🔧 Google Play Services funcionando\n'
+            '🎤 Permisos de micrófono concedidos\n\n'
+            '💡 Soluciones:\n'
+            '1. Activa WiFi o datos móviles\n'
+            '2. Verifica que puedas abrir una página web\n'
+            '3. Reinicia la app y vuelve a intentar';
+        } else {
+          _recognizedText = 'No se pudo iniciar la grabación. Verifica permisos de micrófono.';
+        }
+        
         notifyListeners();
         debugPrint('❌ No se pudo iniciar la grabación');
       }
     } catch (e) {
       _isRecording = false;
+      _recognizedText = 'Error: ${e.toString()}';
       notifyListeners();
       debugPrint('❌ Error iniciando grabación: $e');
     }
@@ -215,10 +240,26 @@ class HomeProvider extends ChangeNotifier {
       
       if (recognizedText != null && _audioService.hasValidText(recognizedText)) {
         _recognizedText = recognizedText;
+        _audioService.resetRetryCount(); // Resetear contador en caso de éxito
         debugPrint('🎤 Texto reconocido directamente: $recognizedText');
       } else {
-        _recognizedText = recognizedText ?? 'No se pudo capturar el audio. Verifica el micrófono.';
-        debugPrint('❌ No se reconoció texto válido');
+        if (recognizedText == null) {
+          // Obtener diagnóstico para ayudar a depurar
+          final diagnostics = await _audioService.getDiagnostics();
+          debugPrint('📊 Diagnóstico: $diagnostics');
+          
+          _recognizedText = 
+            'Error: No se capturó audio.\n\n'
+            '💡 Soluciones:\n'
+            '1. Verifica que tengas CONEXIÓN A INTERNET (WiFi o datos móviles)\n'
+            '2. Verifica permisos de micrófono en Configuración\n'
+            '3. Habla más cerca del micrófono\n'
+            '4. Mantén presionado el botón mientras hablas\n'
+            '5. Reinicia la app si persiste';
+        } else {
+          _recognizedText = recognizedText;
+        }
+        debugPrint('❌ No se reconoció texto válido: $recognizedText');
       }
       
       notifyListeners();

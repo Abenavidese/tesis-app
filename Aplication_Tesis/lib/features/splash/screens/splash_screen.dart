@@ -31,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     // Navigate after 5 seconds
     Future.delayed(const Duration(seconds: 5), () {
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/main-menu');
       }
     });
   }

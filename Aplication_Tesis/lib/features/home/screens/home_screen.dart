@@ -46,11 +46,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   
                   // Header con búho
                   _buildHeader(),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
 
                   // Image section
                   AnimatedBuilder(
@@ -109,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       return _buildEvaluationResult();
                     },
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
 
                   // Action buttons
                   AnimatedBuilder(
@@ -118,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       return ActionButtons(provider: _provider);
                     },
                   ),
-                  const SizedBox(height: 80),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),

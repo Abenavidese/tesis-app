@@ -3,7 +3,7 @@ import os
 # Forzar uso de CPU (GPU RTX 5070 Ti no compatible con PyTorch actual)
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -116,11 +116,15 @@ async def predict(image: UploadFile = File(...)):
         caption = quick_generate(pil_image)
         processing_time = time.time() - start_time
         
-        print(f"✅ {processing_time:.2f}s - {caption[:50]}...")
+        # Extraer el título (texto antes de los dos puntos)
+        title = caption.split(':', 1)[0].strip() if ':' in caption else caption.strip()
+        
+        print(f"✅ {processing_time:.2f}s - Título: {title} - {caption[:50]}...")
         
         return JSONResponse(
             content={
                 "caption": caption,
+                "title": title,
                 "status": "success",
                 "processing_time_seconds": round(processing_time, 2)
             },
@@ -233,9 +237,9 @@ class ValidarRetoRequest(BaseModel):
 
 @app.post("/validar-reto")
 async def validar_reto(
-    sujeto_solicitado: str,
     image: UploadFile = File(...),
-    umbral: float = 0.7
+    sujeto_solicitado: str = Form(...),
+    umbral: float = Form(0.7)
 ):
     """
     Valida si la imagen corresponde al sujeto solicitado en el juego interactivo.
