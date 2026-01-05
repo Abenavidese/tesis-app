@@ -86,7 +86,7 @@ class _Activity1GameScreenState extends State<Activity1GameScreen> {
                       return VoiceResultDisplay(
                         recognizedText: _provider.recognizedText,
                         isRecording: _provider.isRecording,
-                        isProcessing: _provider.isProcessing && _provider.isRecording == false,
+                        isProcessing: _provider.isProcessingAudio && _provider.isRecording == false,
                       );
                     },
                   ),
