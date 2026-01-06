@@ -7,8 +7,8 @@ from tqdm import tqdm
 from pathlib import Path
 
 # Configuración
-test_folder = r"C:\Users\EleXc\Music\TESIS\TESTING\test_dataset\nuevo dataset\estudios_sociales\accidentes_geograficos\desierto"
-output_csv = r"C:\Users\EleXc\Desktop\tesis_app\predicciones_test4-geograficos.csv"
+test_folder = r"C:\Users\EleXc\Music\TESIS\TESTING\test_dataset\nuevo dataset\estudios_sociales\familia\compromiso"
+output_csv = r"C:\Users\EleXc\Desktop\tesis_app\predicciones_test4-compromiso.csv"
 model_path = r"C:\Users\EleXc\Downloads\bliputf-esp-last2-20251224T072956Z-3-001\bliputf-esp-last2"  # Cambia por la ruta de tu modelo entrenado
 
 # 1. Cargar modelo entrenado

@@ -54,7 +54,7 @@ esp32_connected = False
 
 # Variables globales para Nextion
 nextion_serial = None
-nextion_lock = asyncio.Lock()
+nextion_lock = None  # Se inicializa en startup
 
 print("🚀 API Gateway Raspberry Pi iniciado")
 print(f"📡 Servidor ML: {MODEL_SERVER_URL}")
@@ -233,13 +233,12 @@ async def send_to_nextion(cmd: str) -> bool:
     Versión async para no bloquear FastAPI.
     Envía comando a Nextion.
     """
-    async with nextion_lock:  # Evitar comandos simultáneos
-        try:
-            result = await asyncio.to_thread(_send_nextion_sync, cmd)
-            return result
-        except Exception as e:
-            print(f"❌ Error async enviando a Nextion: {e}")
-            return False
+    try:
+        result = await asyncio.to_thread(_send_nextion_sync, cmd)
+        return result
+    except Exception as e:
+        print(f"❌ Error async enviando a Nextion: {e}")
+        return False
 
 
 async def show_result_and_return(is_correct: bool):
@@ -352,17 +351,25 @@ async def predict_proxy(image: UploadFile = File(...)):
             content=result,
             media_type="application/json; charset=utf-8"
         )
-        a Nextion: mostrar página de resultado y programar regreso a página principal
-        nextion_page = PAGE_WIN if es_correcta else PAGE_LOSE
-        print(f"🟣 Nextion: Mostrando {nextion_page} ({'GANASTE' if es_correcta else 'PERDISTE'})...")
-        await show_result_and_return(es_correcta)
+        
+    except httpx.TimeoutException:
+        print("❌ GATEWAY - Timeout conectando al servidor ML")
+        raise HTTPException(
+            status_code=504,
+            detail="Timeout conectando al servidor ML"
+        )
+    except Exception as e:
+        print(f"❌ GATEWAY - Error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en gateway: {str(e)}"
+        )
 
-        # Agregar info sobre el ESP32 y Nextion en la respuesta
-        result["esp32_signal_sent"] = esp32_sent
-        result["esp32_message"] = "b" if es_correcta else "m"
-        result["nextion_page_shown"] = nextion_page
-        result["nextion_auto_return"] = True
-        result["nextion_return_seconds"] = 7 a la pantalla Nextion
+
+@app.post("/evaluate")
+async def evaluate_proxy(request: EvaluacionRequest):
+    """
+    Proxy para /evaluate - Evalúa respuesta y envía señal al ESP32 y a la pantalla Nextion
 
     ESP32:
       'b' si es correcta
@@ -409,25 +416,17 @@ async def predict_proxy(image: UploadFile = File(...)):
             print("🔵 Enviando señal 'm' (incorrecto) al ESP32...")
             esp32_sent = await send_to_esp32("m")
 
-        # Enviar cambio de página a Nextion
-        # page2 = GANASTE, page3 = PERDISTE
-        nextion_sent = False
-        nextion_cmd = "page page2" if es_correcta else "page page3"
-
-        if es_correcta:
-            print("🟣 Enviando a Nextion: page page2 (GANASTE)...")
-        else:
-            print("🟣 Enviando a Nextion: page page3 (PERDISTE)...")
-
-        nextion_sent = await send_to_nextion(nextion_cmd)
+        # Enviar a Nextion: mostrar página de resultado y programar regreso a página principal
+        nextion_page = PAGE_WIN if es_correcta else PAGE_LOSE
+        print(f"🟣 Nextion: Mostrando {nextion_page} ({'GANASTE' if es_correcta else 'PERDISTE'})...")
+        await show_result_and_return(es_correcta)
 
         # Agregar info sobre el ESP32 y Nextion en la respuesta
         result["esp32_signal_sent"] = esp32_sent
         result["esp32_message"] = "b" if es_correcta else "m"
-
-        result["nextion_signal_sent"] = nextion_sent
-        result["nextion_command"] = nextion_cmd
-        result["nextion_page"] = "page2" if es_correcta else "page3"
+        result["nextion_page_shown"] = nextion_page
+        result["nextion_auto_return"] = True
+        result["nextion_return_seconds"] = 7
 
         return JSONResponse(
             content=result,
@@ -476,17 +475,9 @@ async def generate_quiz_proxy(request: QuizRequest):
         print(f"✅ GATEWAY - Quiz generado con {len(result.get('choices', []))} opciones")
         
         return JSONResponse(
-          Enviar a Nextion: mostrar página de resultado y programar regreso a página principal
-        nextion_page = PAGE_WIN if es_correcta else PAGE_LOSE
-        print(f"🟣 Nextion: Mostrando {nextion_page} ({'GANASTE' if es_correcta else 'PERDISTE'})...")
-        await show_result_and_return(es_correcta)
-        
-        # Agregar info sobre el ESP32 y Nextion en la respuesta
-        result['esp32_signal_sent'] = esp32_sent
-        result['esp32_message'] = 'b' if es_correcta else 'm'
-        result['nextion_page_shown'] = nextion_page
-        result['nextion_auto_return'] = True
-        result['nextion_return_seconds'] = 7
+            content=result,
+            media_type="application/json; charset=utf-8"
+        )
         
     except httpx.TimeoutException:
         print("❌ GATEWAY - Timeout conectando al servidor ML")
@@ -541,9 +532,17 @@ async def validate_quiz_proxy(request: QuizValidationRequest):
             print("🔵 Enviando señal 'm' (incorrecto) al ESP32...")
             esp32_sent = await send_to_esp32("m")
         
-        # Agregar info sobre el ESP32 en la respuesta
+        # Enviar a Nextion: mostrar página de resultado y programar regreso a página principal
+        nextion_page = PAGE_WIN if es_correcta else PAGE_LOSE
+        print(f"🟣 Nextion: Mostrando {nextion_page} ({'GANASTE' if es_correcta else 'PERDISTE'})...")
+        await show_result_and_return(es_correcta)
+        
+        # Agregar info sobre el ESP32 y Nextion en la respuesta
         result['esp32_signal_sent'] = esp32_sent
         result['esp32_message'] = 'b' if es_correcta else 'm'
+        result['nextion_page_shown'] = nextion_page
+        result['nextion_auto_return'] = True
+        result['nextion_return_seconds'] = 7
         
         return JSONResponse(
             content=result,
@@ -556,17 +555,9 @@ async def validate_quiz_proxy(request: QuizValidationRequest):
             status_code=504,
             detail="Timeout conectando al servidor ML"
         )
-    exceptEnviar a Nextion: mostrar página de resultado y programar regreso a página principal
-        nextion_page = PAGE_WIN if es_correcto else PAGE_LOSE
-        print(f"🟣 Nextion: Mostrando {nextion_page} ({'GANASTE' if es_correcto else 'PERDISTE'})...")
-        await show_result_and_return(es_correcto)
-        
-        # Agregar info sobre el ESP32 y Nextion en la respuesta
-        result['esp32_signal_sent'] = esp32_sent
-        result['esp32_message'] = 'b' if es_correcto else 'm'
-        result['nextion_page_shown'] = nextion_page
-        result['nextion_auto_return'] = True
-        result['nextion_return_seconds'] = 7
+    except Exception as e:
+        print(f"❌ GATEWAY - Error: {str(e)}")
+        raise HTTPException(
             status_code=500,
             detail=f"Error en gateway: {str(e)}"
         )
@@ -585,23 +576,23 @@ async def validar_reto_proxy(
     print(f"\n🎮 GATEWAY /validar-reto - Solicitado: '{sujeto_solicitado}'")
     
     try:
-        # Leer la imagen_ESP32, ESP32_BAUDRATE
-    
-    ESP32_ENABLED = config.enabled
-    if config.port:
-        PUERTO_ESP32 = config.port
-    if config.baudrate:
-        ESP32_BAUDRATE = config.baudrate
-    
-    print(f"\n🔧 Configuración ESP32 actualizada:")
-    print(f"   Habilitado: {ESP32_ENABLED}")
-    print(f"   Puerto: {PUERTO_ESP32}")
-    print(f"   Baudrate: {ESP32_BAUDRATE}")
-    
-    return {
-        "status": "success",
-        "esp32_enabled": ESP32_ENABLED,
-        "esp32_port": PUERTO_ESP32 client.post(
+        # Leer la imagen
+        image_bytes = await image.read()
+        
+        # Preparar el archivo para enviarlo al servidor ML
+        files = {
+            'image': (image.filename, image_bytes, image.content_type)
+        }
+        
+        # Preparar los datos del form
+        data = {
+            'sujeto_solicitado': sujeto_solicitado,
+            'umbral': str(umbral)
+        }
+        
+        # Enviar al servidor ML
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
                 f"{MODEL_SERVER_URL}/validar-reto",
                 files=files,
                 data=data
@@ -629,9 +620,17 @@ async def validar_reto_proxy(
             print("🔵 Enviando señal 'm' (incorrecto) al ESP32...")
             esp32_sent = await send_to_esp32("m")
         
-        # Agregar info sobre el ESP32 en la respuesta
+        # Enviar a Nextion: mostrar página de resultado y programar regreso a página principal
+        nextion_page = PAGE_WIN if es_correcto else PAGE_LOSE
+        print(f"🟣 Nextion: Mostrando {nextion_page} ({'GANASTE' if es_correcto else 'PERDISTE'})...")
+        await show_result_and_return(es_correcto)
+        
+        # Agregar info sobre el ESP32 y Nextion en la respuesta
         result['esp32_signal_sent'] = esp32_sent
         result['esp32_message'] = 'b' if es_correcto else 'm'
+        result['nextion_page_shown'] = nextion_page
+        result['nextion_auto_return'] = True
+        result['nextion_return_seconds'] = 7
         
         return JSONResponse(
             content=result,
@@ -642,10 +641,7 @@ async def validar_reto_proxy(
         print("❌ GATEWAY - Timeout conectando al servidor ML")
         raise HTTPException(
             status_code=504,
-            detail="Timeout conectando al servidor ML"_ESP32}")
-    
-    if NEXTION_ENABLED:
-        print(f"🟣 Nextion habilitado en {NEXTION_PORT
+            detail="Timeout conectando al servidor ML"
         )
     except Exception as e:
         print(f"❌ GATEWAY - Error: {str(e)}")
@@ -661,23 +657,23 @@ async def configure_esp32(config: BluetoothConfig):
     """
     Configura la conexión con el ESP32
     """
-    global ESP32_ENABLED, PUERTO, ESP32_BAUDRATE
+    global ESP32_ENABLED, PUERTO_ESP32, ESP32_BAUDRATE
     
     ESP32_ENABLED = config.enabled
     if config.port:
-        PUERTO = config.port
+        PUERTO_ESP32 = config.port
     if config.baudrate:
         ESP32_BAUDRATE = config.baudrate
     
     print(f"\n🔧 Configuración ESP32 actualizada:")
     print(f"   Habilitado: {ESP32_ENABLED}")
-    print(f"   Puerto: {PUERTO}")
+    print(f"   Puerto: {PUERTO_ESP32}")
     print(f"   Baudrate: {ESP32_BAUDRATE}")
     
     return {
         "status": "success",
         "esp32_enabled": ESP32_ENABLED,
-        "esp32_port": PUERTO,
+        "esp32_port": PUERTO_ESP32,
         "esp32_baudrate": ESP32_BAUDRATE
     }
 
@@ -718,7 +714,10 @@ if __name__ == "__main__":
     if ESP32_ENABLED:
         esp32_thread = threading.Thread(target=esp32_connection_thread, daemon=True)
         esp32_thread.start()
-        print(f"🔵 Thread de conexión ESP32 iniciado en {PUERTO}")
+        print(f"🔵 Thread de conexión ESP32 iniciado en {PUERTO_ESP32}")
+    
+    if NEXTION_ENABLED:
+        print(f"🟣 Nextion habilitado en {NEXTION_PORT}")
     
     print("\n" + "="*50)
     print("🌐 Iniciando API Gateway Raspberry Pi en http://0.0.0.0:8001")

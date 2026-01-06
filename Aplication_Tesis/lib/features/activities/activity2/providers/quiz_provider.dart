@@ -116,20 +116,69 @@ class QuizProvider with ChangeNotifier {
   }
 
   // Validar respuesta
-  void validateAnswer() {
+  Future<void> validateAnswer() async {
     if (_selectedAnswerIndex == null || _currentQuestion == null || _hasAnswered) {
       return;
     }
 
-    _isCorrect = _selectedAnswerIndex == _currentQuestion!.correctAnswerIndex;
-    _hasAnswered = true;
-    _totalQuestions++;
-    
-    if (_isCorrect) {
-      _score++;
-    }
-    
+    _isLoading = true;
     notifyListeners();
+
+    try {
+      // Obtener la respuesta del usuario y la respuesta correcta
+      final respuestaUsuario = _currentQuestion!.options[_selectedAnswerIndex!];
+      final respuestaCorrecta = _currentQuestion!.correctAnswer;
+
+      // Llamar al endpoint /validate-quiz del gateway
+      final validateUrl = Uri.parse('${ApiConstants.baseUrl}/validate-quiz');
+      final validateResponse = await http.post(
+        validateUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'respuesta_usuario': respuestaUsuario,
+          'respuesta_correcta': respuestaCorrecta,
+        }),
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Timeout: El servidor no respondió a tiempo');
+        },
+      );
+
+      if (validateResponse.statusCode == 200) {
+        final validateData = json.decode(validateResponse.body);
+        _isCorrect = validateData['es_correcta'] ?? false;
+        
+        if (kDebugMode) {
+          print('✅ Respuesta validada en backend: $_isCorrect');
+          print('ESP32 señal enviada: ${validateData['esp32_signal_sent']}');
+          print('Nextion página mostrada: ${validateData['nextion_page_shown']}');
+        }
+      } else {
+        // Si falla el backend, validar localmente
+        if (kDebugMode) {
+          print('⚠️ Error al validar en backend, validando localmente');
+        }
+        _isCorrect = _selectedAnswerIndex == _currentQuestion!.correctAnswerIndex;
+      }
+    } catch (e) {
+      // Si hay error, validar localmente
+      if (kDebugMode) {
+        print('⚠️ Error al conectar con backend: $e');
+        print('Validando localmente');
+      }
+      _isCorrect = _selectedAnswerIndex == _currentQuestion!.correctAnswerIndex;
+    } finally {
+      _hasAnswered = true;
+      _totalQuestions++;
+      
+      if (_isCorrect) {
+        _score++;
+      }
+      
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   // Reiniciar para nueva pregunta
