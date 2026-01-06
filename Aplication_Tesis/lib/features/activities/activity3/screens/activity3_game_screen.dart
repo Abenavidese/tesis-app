@@ -38,6 +38,7 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
         _stopTimer(); // Detener cronómetro solo al empezar a procesar
         await context.read<ChallengeProvider>().validateChallenge(
           File(photo.path),
+          isFromCamera: true,
         );
       }
     } catch (e) {
@@ -62,6 +63,7 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
         _stopTimer(); // Detener cronómetro solo al empezar a procesar
         await context.read<ChallengeProvider>().validateChallenge(
           File(photo.path),
+          isFromCamera: false,
         );
       }
     } catch (e) {
@@ -326,6 +328,74 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
             ],
           ),
         ),
+        
+        if (provider.capturedImage != null) ...[
+          const SizedBox(height: 20),
+          Container(
+            height: 150,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  Image.file(
+                    provider.capturedImage!,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                  if (provider.isFromCamera)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: FloatingActionButton.small(
+                        heroTag: 'save_image_a3',
+                        onPressed: provider.isSaving ? null : () async {
+                          try {
+                            await provider.saveCapturedImage();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('✅ Imagen guardada en la galería'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('❌ Error al guardar: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        backgroundColor: Colors.white.withOpacity(0.9),
+                        child: provider.isSaving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.save_alt, color: Color(0xFFFF8A65)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
         
         const SizedBox(height: 24),
         

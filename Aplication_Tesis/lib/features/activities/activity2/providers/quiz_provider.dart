@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/constants/api_constants.dart';
 import '../models/quiz_question.dart';
@@ -16,6 +17,8 @@ class QuizProvider with ChangeNotifier {
   int _totalQuestions = 0;
   String? _caption;
   File? _currentImage;
+  bool _isFromCamera = false;
+  bool _isSaving = false;
 
   // Getters
   QuizQuestion? get currentQuestion => _currentQuestion;
@@ -28,10 +31,14 @@ class QuizProvider with ChangeNotifier {
   int get totalQuestions => _totalQuestions;
   String? get caption => _caption;
   File? get currentImage => _currentImage;
+  bool get isFromCamera => _isFromCamera;
+  bool get isSaving => _isSaving;
 
   // Generar pregunta desde una imagen
-  Future<void> generateQuestionFromImage(File imageFile) async {
+  Future<void> generateQuestionFromImage(File imageFile, {bool isFromCamera = false}) async {
     _isLoading = true;
+    _isFromCamera = isFromCamera;
+    _isSaving = false;
     _errorMessage = null;
     _hasAnswered = false;
     _selectedAnswerIndex = null;
@@ -211,5 +218,23 @@ class QuizProvider with ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  Future<void> saveCapturedImage() async {
+    if (_currentImage == null || !_isFromCamera) return;
+    
+    try {
+      _isSaving = true;
+      notifyListeners();
+      
+      await Gal.putImage(_currentImage!.path);
+      
+      _isSaving = false;
+      notifyListeners();
+    } catch (e) {
+      _isSaving = false;
+      notifyListeners();
+      rethrow;
+    }
   }
 }

@@ -27,6 +27,7 @@ class _Activity2GameScreenState extends State<Activity2GameScreen> {
         // Generar quiz desde la imagen capturada
         await context.read<QuizProvider>().generateQuestionFromImage(
           File(photo.path),
+          isFromCamera: true,
         );
       }
     } catch (e) {
@@ -51,6 +52,7 @@ class _Activity2GameScreenState extends State<Activity2GameScreen> {
         // Generar quiz desde la imagen seleccionada
         await context.read<QuizProvider>().generateQuestionFromImage(
           File(photo.path),
+          isFromCamera: false,
         );
       }
     } catch (e) {
@@ -329,10 +331,53 @@ class _Activity2GameScreenState extends State<Activity2GameScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.file(
-                provider.currentImage!,
-                fit: BoxFit.cover,
-              ),
+            child: Stack(
+              alignment: Alignment.topRight,
+              children: [
+                Image.file(
+                  provider.currentImage!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
+                if (provider.isFromCamera)
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: FloatingActionButton.small(
+                      heroTag: 'save_image_a2',
+                      onPressed: provider.isSaving ? null : () async {
+                        try {
+                          await provider.saveCapturedImage();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('✅ Imagen guardada en la galería'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('❌ Error al guardar: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      backgroundColor: Colors.white.withOpacity(0.9),
+                      child: provider.isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.save_alt, color: Color(0xFF42A5F5)),
+                    ),
+                  ),
+              ],
+            ),
             ),
           ),
         

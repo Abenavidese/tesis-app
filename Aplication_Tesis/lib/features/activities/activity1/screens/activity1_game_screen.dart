@@ -226,8 +226,50 @@ class _Activity1GameScreenState extends State<Activity1GameScreen> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: ImagePreview(
-          imageFile: _provider.currentAnalysis!.imageFile!,
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            ImagePreview(
+              imageFile: _provider.currentAnalysis!.imageFile!,
+            ),
+            if (_provider.isFromCamera)
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: FloatingActionButton.small(
+                  heroTag: 'save_image_a1',
+                  onPressed: _provider.isSaving ? null : () async {
+                    try {
+                      await _provider.saveCapturedImage();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('✅ Imagen guardada en la galería'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('❌ Error al guardar: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  backgroundColor: Colors.white.withOpacity(0.9),
+                  child: _provider.isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save_alt, color: Color(0xFF7CB342)),
+                ),
+              ),
+          ],
         ),
       ),
     );
