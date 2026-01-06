@@ -35,6 +35,7 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
       );
 
       if (photo != null && mounted) {
+        _stopTimer(); // Detener cronómetro solo al empezar a procesar
         await context.read<ChallengeProvider>().validateChallenge(
           File(photo.path),
         );
@@ -58,6 +59,7 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
       );
 
       if (photo != null && mounted) {
+        _stopTimer(); // Detener cronómetro solo al empezar a procesar
         await context.read<ChallengeProvider>().validateChallenge(
           File(photo.path),
         );
@@ -75,7 +77,7 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
     final provider = context.read<ChallengeProvider>();
     provider.resetTimer();
     
-    _timer?.cancel();
+    _stopTimer();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -95,6 +97,14 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
         );
       }
     });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+    if (mounted) {
+      setState(() {}); // Forzar reconstrucción para actualizar el botón
+    }
   }
 
   @override
@@ -117,14 +127,15 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           children: [
-                            if (provider.isLoading)
-                              _buildLoadingState()
-                            else if (provider.errorMessage != null)
+                            if (provider.errorMessage != null)
                               _buildErrorState(provider)
                             else if (provider.challengeCompleted)
                               _buildSuccessState(provider)
-                            else
+                            else ...[
+                              if (provider.isLoading)
+                                _buildLoadingState(),
                               _buildChallengeContent(provider),
+                            ],
                           ],
                         ),
                       ),
@@ -409,31 +420,49 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
                   color: Colors.grey,
                 ),
               ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: provider.timeRemaining > 5 
+                      ? const Color(0xFFFF8A65).withOpacity(0.2)
+                      : Colors.red.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '${provider.timeRemaining}s',
+                  style: TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    color: provider.timeRemaining > 5 
+                        ? const Color(0xFFFF7043)
+                        : Colors.red,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
         
         const SizedBox(height: 24),
         
-        const Text(
-          '¡Toma una foto del objeto correcto!',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF424242),
-          ),
-        ),
-        
-        const SizedBox(height: 16),
-        
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: _captureImage,
+                onPressed: (provider.timeRemaining > 0 && !provider.isLoading) 
+                    ? () {
+                        if (_timer == null || !_timer!.isActive) {
+                          _startTimer();
+                        }
+                        _captureImage();
+                      }
+                    : null,
                 icon: const Icon(Icons.camera_alt),
-                label: const Text('CÁMARA'),
+                label: Text(_timer == null || !_timer!.isActive 
+                    ? 'INICIAR' 
+                    : 'CÁMARA'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFF8A65),
                   foregroundColor: Colors.white,
@@ -446,7 +475,14 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: _pickFromGallery,
+                onPressed: (provider.timeRemaining > 0 && !provider.isLoading) 
+                    ? () {
+                        if (_timer == null || !_timer!.isActive) {
+                          _startTimer();
+                        }
+                        _pickFromGallery();
+                      }
+                    : null,
                 icon: const Icon(Icons.photo_library),
                 label: const Text('GALERÍA'),
                 style: OutlinedButton.styleFrom(
@@ -460,6 +496,18 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
             ),
           ],
         ),
+        
+        if (_timer != null && _timer!.isActive) ...[
+          const SizedBox(height: 16),
+          const Text(
+            '¡Rápido! El tiempo corre',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.orange,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -528,7 +576,7 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: provider.timeRemaining > 0 
+                onPressed: (provider.timeRemaining > 0 && !provider.isLoading) 
                     ? () {
                         if (_timer == null || !_timer!.isActive) {
                           _startTimer();
@@ -552,7 +600,7 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: provider.timeRemaining > 0 
+                onPressed: (provider.timeRemaining > 0 && !provider.isLoading) 
                     ? () {
                         if (_timer == null || !_timer!.isActive) {
                           _startTimer();
