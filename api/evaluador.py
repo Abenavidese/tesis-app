@@ -14,6 +14,13 @@ GENERICOS = {
     "imagen", "foto", "fotografía", "dibujo", "figura", "ilustración", "gráfico"
 }
 
+# Categorías genéricas que deben ignorarse para buscar el sujeto específico
+CATEGORIAS_GENERICAS = {
+    "accidente", "geográfico", "derecho", "evento", "edificio", "histórico",
+    "sistema", "actividad", "responsabilidad", "tarea", "ciclo", "vida", 
+    "familiar", "familia", "digno", "adecuado"
+}
+
 
 def similitud_semantica(texto1: str, texto2: str) -> float:
     """
@@ -41,14 +48,24 @@ def obtener_sujeto(frase: str):
     for chunk in doc.noun_chunks:
         print(f"  📦 Chunk detectado: '{chunk.text}' | root: {chunk.root.text} | root.pos_: {chunk.root.pos_}")
         
-        # Filtrar palabras genéricas del chunk
+        # Filtrar palabras genéricas del chunk y limitar a las primeras palabras importantes
         palabras_importantes = []
         for token in chunk:
             print(f"    - Token: '{token.text}' | lemma: '{token.lemma_}' | pos: {token.pos_} | is_stop: {token.is_stop}")
+            
+            # Detener si encontramos preposición, verbo o puntuación (marca fin del sujeto)
+            if token.pos_ in ("ADP", "VERB", "PUNCT") or token.text in (":", ",", "en", "de", "con", "para"):
+                print(f"    ⛔ Deteniendo en: '{token.text}' (pos: {token.pos_})")
+                break
+            
             if token.pos_ in ("NOUN", "PROPN", "ADJ") and not token.is_stop:
                 lema = token.lemma_.lower()
-                if lema not in GENERICOS:
+                # Saltar tanto genéricos como categorías generales
+                if lema not in GENERICOS and lema not in CATEGORIAS_GENERICAS:
                     palabras_importantes.append(lema)
+                    # Limitar a máximo 2 palabras para sustantivos compuestos simples
+                    if len(palabras_importantes) >= 2:
+                        break
         
         if palabras_importantes:
             # Unir palabras importantes del chunk (ej: "sistema circulatorio")
@@ -62,7 +79,7 @@ def obtener_sujeto(frase: str):
         for token in doc:
             if token.pos_ in ("NOUN", "PROPN") and not token.is_stop:
                 lema = token.lemma_.lower()
-                if lema not in GENERICOS:
+                if lema not in GENERICOS and lema not in CATEGORIAS_GENERICAS:
                     candidatos.append((token.i, lema))
 
     if not candidatos:
@@ -109,7 +126,10 @@ def evaluar_respuesta(texto_modelo: str, texto_nino: str, umbral: float = 0.6):
         }
 
     sim = similitud_semantica(texto_modelo, texto_nino)
-    es_correcta = sim >= umbral
+    
+    # Bonus de 0.15 cuando los sujetos coinciden
+    sim_con_bonus = min(sim + 0.15, 1.0)
+    es_correcta = sim_con_bonus >= umbral
 
     return {
         "texto_modelo": texto_modelo,
@@ -117,7 +137,7 @@ def evaluar_respuesta(texto_modelo: str, texto_nino: str, umbral: float = 0.6):
         "sujeto_modelo": sujeto_modelo,
         "sujeto_nino": sujeto_nino,
         "sujeto_igual": True,
-        "similitud": sim,
+        "similitud": sim_con_bonus,
         "umbral": umbral,
         "es_correcta": es_correcta,
     }
