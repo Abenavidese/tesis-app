@@ -48,6 +48,29 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
     }
   }
 
+  Future<void> _pickFromGallery() async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (photo != null && mounted) {
+        await context.read<ChallengeProvider>().validateChallenge(
+          File(photo.path),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al seleccionar imagen: $e')),
+        );
+      }
+    }
+  }
+
   void _startTimer() {
     final provider = context.read<ChallengeProvider>();
     provider.resetTimer();
@@ -403,16 +426,39 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
         
         const SizedBox(height: 16),
         
-        ElevatedButton.icon(
-          onPressed: _captureImage,
-          icon: const Icon(Icons.camera_alt, size: 32),
-          label: const Text('TOMAR FOTO'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF8A65),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-            textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _captureImage,
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('CÁMARA'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF8A65),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _pickFromGallery,
+                icon: const Icon(Icons.photo_library),
+                label: const Text('GALERÍA'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFFF7043),
+                  side: const BorderSide(color: Color(0xFFFF8A65), width: 2),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -477,25 +523,55 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
         
         const SizedBox(height: 24),
         
-        ElevatedButton.icon(
-          onPressed: provider.timeRemaining > 0 
-              ? () {
-                  if (_timer == null || !_timer!.isActive) {
-                    _startTimer();
-                  }
-                  _captureImage();
-                }
-              : null,
-          icon: const Icon(Icons.camera_alt, size: 32),
-          label: Text(_timer == null || !_timer!.isActive 
-              ? 'INICIAR RETO' 
-              : 'TOMAR FOTO'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF8A65),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-            textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: provider.timeRemaining > 0 
+                    ? () {
+                        if (_timer == null || !_timer!.isActive) {
+                          _startTimer();
+                        }
+                        _captureImage();
+                      }
+                    : null,
+                icon: const Icon(Icons.camera_alt),
+                label: Text(_timer == null || !_timer!.isActive 
+                    ? 'INICIAR' 
+                    : 'CÁMARA'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF8A65),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: provider.timeRemaining > 0 
+                    ? () {
+                        if (_timer == null || !_timer!.isActive) {
+                          _startTimer();
+                        }
+                        _pickFromGallery();
+                      }
+                    : null,
+                icon: const Icon(Icons.photo_library),
+                label: const Text('GALERÍA'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFFF7043),
+                  side: const BorderSide(color: Color(0xFFFF8A65), width: 2),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+          ],
         ),
         
         if (_timer != null && _timer!.isActive) ...[
