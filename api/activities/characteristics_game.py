@@ -64,8 +64,15 @@ def parsear_caracteristicas(descripcion: str) -> Tuple[str, List[str]]:
     # Primera parte es el nombre
     nombre = partes[0]
     
+    
     # Resto son características
     caracteristicas = partes[1:]
+    
+    # CRITICAL FIX: Agregar el nombre también como una característica válida para comparar
+    # Esto soluciona el problema cuando el niño selecciona algo que el sistema consideró "nombre"
+    # Ejemplo: "Regar plantas" (nombre) vs "uso de agua" (carac). Si el niño elige "Regar plantas", debe ser correcto.
+    if nombre not in caracteristicas:
+        caracteristicas.insert(0, nombre)
     
     return nombre, caracteristicas
 
@@ -202,17 +209,21 @@ def evaluar_caracteristicas(
     correctas = len(caracteristicas_correctas)
     porcentaje = (correctas / total) * 100 if total > 0 else 0.0
     
-    # Determinar si es correcto (al menos 60% de acierto)
-    es_correcto = porcentaje >= 60.0
+    # Determinar si es correcto: al menos 2 características correctas
+    # (sin importar cuántas características tenga el objeto en total)
+    es_correcto = correctas >= 2
     
     # Generar mensaje
     if es_correcto:
-        if porcentaje == 100.0:
+        if correctas == total and total > 0:
             mensaje = "¡Perfecto! Todas las características son correctas 🎉"
         else:
             mensaje = f"¡Muy bien! {correctas}/{total} características correctas ✅"
     else:
-        mensaje = f"¡Inténtalo de nuevo! Solo {correctas}/{total} características correctas"
+        if correctas == 1:
+            mensaje = f"¡Casi! Necesitas al menos 2 características correctas. Tienes {correctas}/2"
+        else:
+            mensaje = f"¡Inténtalo de nuevo! Necesitas al menos 2 características correctas"
     
     return {
         "es_correcto": es_correcto,
@@ -222,7 +233,8 @@ def evaluar_caracteristicas(
         "detalles": detalles,
         "mensaje": mensaje,
         "total_seleccionadas": total,
-        "total_correctas": correctas
+        "total_correctas": correctas,
+        "minimo_requerido": 2
     }
 
 

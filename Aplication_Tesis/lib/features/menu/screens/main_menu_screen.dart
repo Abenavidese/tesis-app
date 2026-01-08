@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../activities/activity1/screens/activity1_intro_screen.dart';
 import '../../activities/activity2/screens/activity2_intro_screen.dart';
 import '../../activities/activity3/screens/activity3_intro_screen.dart';
+import '../../activities/activity4/screens/activity4_intro_screen.dart';
 
 class MainMenuScreen extends StatelessWidget {
   const MainMenuScreen({super.key});
@@ -85,6 +86,24 @@ class MainMenuScreen extends StatelessWidget {
                             );
                           },
                         ),
+                        const SizedBox(height: 10),
+                        
+                        _buildActivityButton(
+                          context: context,
+                          number: '4',
+                          title: 'ACTIVIDAD 4',
+                          subtitle: '¡Adivina!',
+                          icon: '✨',
+                          colors: [const Color(0xFFAB47BC), const Color(0xFF8E24AA)],
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const Activity4IntroScreen(),
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -138,6 +157,19 @@ class MainMenuScreen extends StatelessWidget {
           height: 60,
           decoration: BoxDecoration(
             color: const Color(0xFF558B2F).withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+      // Nueva decoración morada para la actividad 4
+      Positioned(
+        bottom: 200,
+        right: 30,
+        child: Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: const Color(0xFFAB47BC).withOpacity(0.15),
             shape: BoxShape.circle,
           ),
         ),

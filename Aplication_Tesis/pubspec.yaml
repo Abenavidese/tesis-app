@@ -34,4 +34,5 @@ flutter:
   assets:
     - assets/imagenes/
     - lib/features/activities/activity3/images/
+    - lib/features/activities/activity4/data/characteristics_data.json
 

@@ -1,0 +1,373 @@
+{
+  "cepillandose": {
+    "images": ["cepillandose_1.png", "cepillandose_2.png", "cepillandose_3.png"],
+    "characteristics": [
+      "cepillarse los dientes",
+      "higiene bucal",
+      "uso de cepillo y pasta dental",
+      "cuidado de muelas"
+    ]
+  },
+  "lavandose_manos": {
+    "images": ["lavandose_manos_1.png", "lavandose_manos_2.png", "lavandose_manos_3.png"],
+    "characteristics": [
+      "lavarse las manos",
+      "higiene con agua y jabón",
+      "eliminación de suciedad y microbios visibles"
+    ]
+  },
+  "peinandose": {
+    "images": ["peinandose_1.png", "peinandose_2.png", "peinandose_3.png"],
+    "characteristics": [
+      "peinarse el cabello",
+      "orden del pelo",
+      "uso de peine o cepillo",
+      "cuidado de la apariencia"
+    ]
+  },
+  "circulatorio": {
+    "images": ["circulatorio_1.png", "circulatorio_2.png", "circulatorio_3.png"],
+    "characteristics": [
+      "sistema circulatorio",
+      "corazón que late",
+      "sangre en movimiento",
+      "transporte interno del cuerpo"
+    ]
+  },
+  "digestivo": {
+    "images": ["digestivo_1.png", "digestivo_2.png", "digestivo_3.png"],
+    "characteristics": [
+      "sistema digestivo",
+      "transformación de alimentos",
+      "estómago e intestinos",
+      "absorción de nutrientes"
+    ]
+  },
+  "locomotor": {
+    "images": ["locomotor_1.png", "locomotor_2.png", "locomotor_3.png"],
+    "characteristics": [
+      "sistema locomotor",
+      "huesos rígidos y músculos",
+      "soporte del cuerpo",
+      "desplazamiento físico"
+    ]
+  },
+  "respiratorio": {
+    "images": ["respiratorio_1.png", "respiratorio_2.png", "respiratorio_3.png"],
+    "characteristics": [
+      "sistema respiratorio",
+      "pulmones que se inflan",
+      "entrada y salida de aire",
+      "respiración constante"
+    ]
+  },
+  "burro": {
+    "images": ["burro_1.jpg", "burro_2.jpg", "burro_3.jpg"],
+    "characteristics": [
+      "animal doméstico",
+      "mamífero herbívoro",
+      "cuerpo fuerte",
+      "carga pesada",
+      "trabajo rural"
+    ]
+  },
+  "caballo": {
+    "images": ["caballo_1.jpg", "caballo_2.jpg", "caballo_3.jpg"],
+    "characteristics": [
+      "animal doméstico",
+      "mamífero herbívoro",
+      "gran velocidad",
+      "montura",
+      "transporte humano"
+    ]
+  },
+  "conejo": {
+    "images": ["conejo_1.jpg", "conejo_2.jpg", "conejo_3.jpg"],
+    "characteristics": [
+      "animal doméstico",
+      "mamífero herbívoro",
+      "orejas largas",
+      "saltos rápidos",
+      "tamaño pequeño"
+    ]
+  },
+  "gallina": {
+    "images": ["gallina_1.jpg", "gallina_2.jpg", "gallina_3.jpg"],
+    "characteristics": [
+      "animal doméstico",
+      "ave terrestre",
+      "pico corto",
+      "pone huevos",
+      "camina más que vuela"
+    ]
+  },
+  "gato": {
+    "images": ["gato_1.jpg", "gato_2.jpg", "gato_3.jpg"],
+    "characteristics": [
+      "animal doméstico",
+      "mamífero carnívoro",
+      "movimientos silenciosos",
+      "caza pequeños animales"
+    ]
+  },
+  "oveja": {
+    "images": ["oveja_1.jpg", "oveja_2.jpg", "oveja_3.jpg"],
+    "characteristics": [
+      "animal doméstico",
+      "mamífero herbívoro",
+      "cuerpo cubierto de lana",
+      "vive en rebaño"
+    ]
+  },
+  "perro": {
+    "images": ["perro_1.jpg", "perro_2.jpg", "perro_3.jpg"],
+    "characteristics": [
+      "animal doméstico",
+      "mamífero carnívoro",
+      "olfato desarrollado",
+      "protege y acompaña personas"
+    ]
+  },
+  "vaca": {
+    "images": ["vaca_1.jpg", "vaca_2.jpg", "vaca_3.jpg"],
+    "characteristics": [
+      "animal doméstico",
+      "mamífero herbívoro",
+      "gran tamaño",
+      "produce leche",
+      "rumia pasto"
+    ]
+  },
+  "cebra": {
+    "images": ["cebra_1.jpg", "cebra_2.jpg", "cebra_3.jpg"],
+    "characteristics": [
+      "animal salvaje",
+      "mamífero herbívoro",
+      "cuerpo con rayas blancas y negras",
+      "corre en manada"
+    ]
+  },
+  "cocodrilo": {
+    "images": ["cocodrilo_1.jpg", "cocodrilo_2.jpg", "cocodrilo_3.jpg"],
+    "characteristics": [
+      "animal salvaje",
+      "reptil carnívoro",
+      "cuerpo alargado",
+      "piel dura",
+      "mandíbulas fuertes"
+    ]
+  },
+  "elefante": {
+    "images": ["elefante_1.jpg", "elefante_2.jpg", "elefante_3.jpg"],
+    "characteristics": [
+      "animal salvaje",
+      "mamífero herbívoro",
+      "trompa larga",
+      "colmillos grandes",
+      "tamaño gigante"
+    ]
+  },
+  "jirafa": {
+    "images": ["jirafa_1.jpg", "jirafa_2.jpg", "jirafa_3.jpg"],
+    "characteristics": [
+      "animal salvaje",
+      "mamífero herbívoro",
+      "cuello extremadamente largo",
+      "come hojas altas"
+    ]
+  },
+  "leon": {
+    "images": ["leon_1.jpg", "leon_2.jpg", "leon_3.jpg"],
+    "characteristics": [
+      "animal salvaje",
+      "mamífero carnívoro",
+      "melena en el macho",
+      "rugido fuerte",
+      "cazador líder"
+    ]
+  },
+  "lobo": {
+    "images": ["lobo_1.jpg", "lobo_2.jpg", "lobo_3.jpg"],
+    "characteristics": [
+      "animal salvaje",
+      "mamífero carnívoro",
+      "parecido al perro",
+      "caza en grupo organizado"
+    ]
+  },
+  "mono": {
+    "images": ["mono_1.jpg", "mono_2.jpg", "mono_3.jpg"],
+    "characteristics": [
+      "animal salvaje",
+      "mamífero ágil",
+      "brazos largos",
+      "uso de manos",
+      "vive en árboles"
+    ]
+  },
+  "oso": {
+    "images": ["oso_1.jpg", "oso_2.jpg", "oso_3.jpg"],
+    "characteristics": [
+      "animal salvaje",
+      "mamífero grande",
+      "cuerpo robusto",
+      "camina erguido",
+      "hiberna en invierno"
+    ]
+  },
+  "tigre": {
+    "images": ["tigre_1.jpg", "tigre_2.jpg", "tigre_3.jpg"],
+    "characteristics": [
+      "animal salvaje",
+      "mamífero carnívoro",
+      "rayas oscuras",
+      "caza solo",
+      "movimientos sigilosos"
+    ]
+  },
+  "mariposa": {
+    "images": ["mariposa_1.png", "mariposa_2.png", "mariposa_3.png"],
+    "characteristics": [
+      "insecto con alas",
+      "transformación completa",
+      "pasa por oruga y capullo"
+    ]
+  },
+  "rana": {
+    "images": ["rana_1.png", "rana_2.png", "rana_3.png"],
+    "characteristics": [
+      "animal anfibio",
+      "piel húmeda",
+      "comienza como renacuajo",
+      "salta en tierra"
+    ]
+  },
+  "desierto": {
+    "images": ["desierto_1.jpg", "desierto_2.jpg", "desierto_3.jpg"],
+    "characteristics": [
+      "zona árida",
+      "arena extensa",
+      "casi sin lluvias",
+      "plantas escasas"
+    ]
+  },
+  "glaciar": {
+    "images": ["glaciar_1.jpg", "glaciar_2.jpg", "glaciar_3.jpg"],
+    "characteristics": [
+      "hielo acumulado",
+      "movimiento lento del hielo",
+      "regiones muy frías"
+    ]
+  },
+  "isla": {
+    "images": ["isla_1.jpg", "isla_2.jpg", "isla_3.jpg"],
+    "characteristics": [
+      "porción de tierra aislada",
+      "rodeada completamente por agua"
+    ]
+  },
+  "montana": {
+    "images": ["montana_1.jpg", "montana_2.jpg", "montana_3.jpg"],
+    "characteristics": [
+      "gran elevación natural",
+      "pendiente pronunciada",
+      "cima elevada"
+    ]
+  },
+  "volcan": {
+    "images": ["volcan_1.png", "volcan_2.jpg", "volcan_3.jpg"],
+    "characteristics": [
+      "abertura de la tierra",
+      "salida de lava",
+      "gases y ceniza"
+    ]
+  },
+  "basilica": {
+    "images": ["basilica_1.jpeg", "basilica_2.jpeg", "basilica_3.jpeg"],
+    "characteristics": [
+      "iglesia monumental",
+      "torres altas",
+      "estilo arquitectónico detallado"
+    ]
+  },
+  "alimentacion": {
+    "images": ["alimentacion_1.png", "alimentacion_2.png", "alimentacion_3.png"],
+    "characteristics": [
+      "derecho a la alimentación",
+      "acceso a comida diaria",
+      "nutrición adecuada"
+    ]
+  },
+  "descanso": {
+    "images": ["descanso_1.png", "descanso_2.png", "descanso_3.png"],
+    "characteristics": [
+      "derecho al descanso",
+      "tiempo para dormir",
+      "pausa del trabajo y estudio"
+    ]
+  },
+  "educacion": {
+    "images": ["educacion_1.png", "educacion_2.png", "educacion_3.png"],
+    "characteristics": [
+      "derecho a la educación",
+      "acceso a escuela",
+      "aprendizaje guiado"
+    ]
+  },
+  "salud": {
+    "images": ["salud_1.png", "salud_2.png", "salud_3.png"],
+    "characteristics": [
+      "derecho a la salud",
+      "atención médica",
+      "prevención y tratamiento de enfermedades"
+    ]
+  },
+  "vivienda": {
+    "images": ["vivienda_1.png", "vivienda_2.png", "vivienda_3.png"],
+    "characteristics": [
+      "derecho a la vivienda",
+      "casa estable",
+      "protección contra clima y peligros"
+    ]
+  },
+  "cuidar_mascota": {
+    "images": ["cuidar_mascota_1.png", "cuidar_mascota_2.png", "cuidar_mascota_3.png"],
+    "characteristics": [
+      "cuidar mascota",
+      "alimentar animales",
+      "atención diaria"
+    ]
+  },
+  "regar_plantas": {
+    "images": ["regar_plantas_1.png", "regar_plantas_2.png", "regar_plantas_3.png"],
+    "characteristics": [
+      "regar plantas",
+      "uso de agua",
+      "mantenimiento del jardín"
+    ]
+  },
+  "sacar_basura": {
+    "images": ["sacar_basura_1.png", "sacar_basura_2.png", "sacar_basura_3.png"],
+    "characteristics": [
+      "sacar basura",
+      "retirar desechos",
+      "mantener espacios limpios"
+    ]
+  },
+  "cumple": {
+    "images": ["cumple_1.png", "cumple_2.png", "cumple_3.png"],
+    "characteristics": [
+      "celebración anual",
+      "pastel y velas",
+      "regalos"
+    ]
+  },
+  "navidad": {
+    "images": ["navidad_1.png", "navidad_2.png", "navidad_3.png"],
+    "characteristics": [
+      "celebración especial",
+      "decoración con luces",
+      "reunión familiar"
+    ]
+  }
+}
