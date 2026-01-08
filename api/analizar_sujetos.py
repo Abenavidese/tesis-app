@@ -21,6 +21,7 @@ OUTPUT_CSV = "analisis_sujetos.csv"
 # Datos del CSV
 csv_data = """folder_name,content
 cepillandose,"Higiene: aquí se puede ver a un niño cepillándose los dientes frente al espejo, porque es importante mantener la limpieza bucal y cuidar la salud."
+politecnica, "Politécnica Salesiana: Institución de educación superior que promueve la excelencia académica, la innovación tecnológica y los valores salesianos."
 lavando_manos,"Higiene: aquí se puede ver a un niño lavándose las manos con agua y jabón en el lavabo, porque es importante mantener la limpieza para cuidar la salud."
 peinandose,"Higiene: aquí se puede ver a un niño peinándose con cepillo frente al espejo, porque es importante mantener el cuidado personal y la limpieza."
 circulatorio,"Sistema circulatorio: aquí se puede ver un esquema del sistema circulatorio, mostrando el corazón, arterias y venas, porque transporta sangre, oxígeno y nutrientes a todo el cuerpo."

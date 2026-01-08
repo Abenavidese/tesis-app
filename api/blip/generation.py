@@ -64,10 +64,18 @@ class BlipEspanol:
         self.device = torch.device(device)
         self.image_size = image_size
         
-        # Optimización CPU
+        # Optimización CPU - solo configurar threads si no se han configurado antes
         if self.device.type == "cpu":
-            torch.set_num_threads(num_threads)
-            torch.set_num_interop_threads(1)
+            try:
+                torch.set_num_threads(num_threads)
+                torch.set_num_interop_threads(1)
+            except RuntimeError as e:
+                # Si ya se configuraron los threads, ignorar el error
+                if "cannot set number" not in str(e):
+                    raise
+                # Los threads ya están configurados, continuar
+                pass
+
         
         # Cargar diccionarios de corrección
         print("📚 Cargando diccionario español...")
@@ -291,10 +299,11 @@ class BlipEspanol:
 # ============================================
 
 _global_generator = None
+_global_characteristics_generator = None
 
 def get_global_generator():
     """
-    Obtiene o crea la instancia global del generador BLIP.
+    Obtiene o crea la instancia global del generador BLIP original.
     
     Esta función mantiene compatibilidad con el código anterior,
     pero ahora usa BlipEspanol con corrección automática.
@@ -304,15 +313,45 @@ def get_global_generator():
     """
     global _global_generator
     if _global_generator is None:
-        print("🚀 Inicializando BlipEspanol global...")
+        print("🚀 Inicializando BlipEspanol global (modelo original)...")
         # Cargar desde .env automáticamente
         _global_generator = BlipEspanol.from_pretrained()
         print("✅ BlipEspanol inicializado correctamente")
     return _global_generator
 
+def get_global_characteristics_generator():
+    """
+    Obtiene o crea la instancia global del generador BLIP de características.
+    
+    Este modelo está entrenado específicamente para generar descripciones
+    en formato: "nombre, característica1, característica2, ..."
+    
+    Returns:
+        BlipEspanol: Instancia global del modelo de características
+    """
+    global _global_characteristics_generator
+    if _global_characteristics_generator is None:
+        print("🚀 Inicializando BlipEspanol global (modelo de características)...")
+        
+        # Cargar configuración desde .env
+        characteristics_model_path = os.getenv('BLIP_MODEL_CARACTERISTICAS_PATH', 'blip-characteristics')
+        device = os.getenv('BLIP_DEVICE', 'cpu')
+        image_size = int(os.getenv('BLIP_IMAGE_SIZE', '384'))
+        num_threads = int(os.getenv('BLIP_NUM_THREADS', '4'))
+        
+        # Cargar modelo de características
+        _global_characteristics_generator = BlipEspanol.from_pretrained(
+            model_path=characteristics_model_path,
+            device=device,
+            image_size=image_size,
+            num_threads=num_threads
+        )
+        print("✅ BlipEspanol de características inicializado correctamente")
+    return _global_characteristics_generator
+
 def quick_generate(image: Image.Image) -> str:
     """
-    Genera caption rápidamente usando la instancia global.
+    Genera caption rápidamente usando la instancia global del modelo original.
     
     Función de conveniencia para generar captions sin instanciar el modelo.
     El caption viene automáticamente corregido.
@@ -325,6 +364,26 @@ def quick_generate(image: Image.Image) -> str:
     """
     return get_global_generator().generate_caption(image)
 
+def quick_generate_characteristics(image: Image.Image) -> str:
+    """
+    Genera descripción de características usando el modelo especializado.
+    
+    Este modelo genera descripciones en formato:
+    "nombre, característica1, característica2, característica3"
+    
+    Ejemplo:
+        "isla, porción de tierra aislada, rodeada completamente por agua"
+    
+    Args:
+        image: Imagen PIL
+    
+    Returns:
+        str: Descripción en formato "nombre, característica1, característica2, ..."
+    """
+    return get_global_characteristics_generator().generate_caption(image)
+
 
 print("✅ Módulo BlipEspanol cargado correctamente")
 print("💡 Corrector ortográfico integrado automáticamente")
+print("🎯 Soporte para modelo original y modelo de características")
+

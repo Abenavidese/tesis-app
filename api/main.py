@@ -440,3 +440,129 @@ async def validate_quiz(request: QuizValidationRequest):
             status_code=500,
             detail=f"Error validando respuesta: {str(e)}"
         )
+
+
+# ============================================
+# ENDPOINT DE JUEGO DE CARACTERÍSTICAS
+# ============================================
+
+class CaracteristicasRequest(BaseModel):
+    """Modelo para la petición de validación de características"""
+    caracteristicas_seleccionadas: list[str]
+    umbral: float = 0.7
+
+
+@app.post("/validar-caracteristicas")
+async def validar_caracteristicas(
+    image: UploadFile = File(...),
+    caracteristicas_seleccionadas: str = Form(...),  # JSON string de lista
+    umbral: float = Form(0.7)
+):
+    """
+    Juego de características para niños.
+    
+    Flujo:
+    1. Recibe imagen y características seleccionadas por el niño
+    2. Genera descripción con el modelo de características
+    3. Parsea las características del modelo
+    4. Compara características seleccionadas vs predichas
+    5. Retorna: correcto/incorrecto, porcentaje de acierto, detalles
+    
+    Args:
+    - image: Imagen a analizar
+    - caracteristicas_seleccionadas: JSON string con lista de características (ej: '["rodeada de agua", "aislada"]')
+    - umbral: Umbral de similitud para validación (default: 0.7)
+    
+    Returns:
+    - es_correcto: True si al menos 60% de características son correctas
+    - mensaje: Mensaje de feedback para el niño
+    - nombre_objeto: Nombre del objeto detectado
+    - caracteristicas_modelo: Características predichas por el modelo
+    - caracteristicas_correctas: Características que el niño acertó
+    - caracteristicas_incorrectas: Características que el niño falló
+    - porcentaje_acierto: Porcentaje de acierto (0-100)
+    - detalles: Información detallada de cada característica
+    """
+    print(f"\n🎮 /validar-caracteristicas - Imagen: {image.filename}")
+    
+    try:
+        # 1. Validar y cargar imagen
+        file_bytes = await image.read()
+        pil_image = Image.open(io.BytesIO(file_bytes))
+        
+        # 2. Parsear características seleccionadas
+        # Acepta tanto JSON como texto separado por comas
+        import json
+        try:
+            # Intentar parsear como JSON primero
+            caracteristicas_nino = json.loads(caracteristicas_seleccionadas)
+            if not isinstance(caracteristicas_nino, list):
+                raise ValueError("caracteristicas_seleccionadas debe ser una lista")
+        except (json.JSONDecodeError, ValueError):
+            # Si falla JSON, intentar como texto separado por comas
+            caracteristicas_nino = [c.strip() for c in caracteristicas_seleccionadas.split(',') if c.strip()]
+            if not caracteristicas_nino:
+                raise HTTPException(
+                    status_code=400,
+                    detail="caracteristicas_seleccionadas debe ser JSON válido o texto separado por comas. Ejemplos: '[\"opción1\", \"opción2\"]' o 'opción1, opción2'"
+                )
+        
+        print(f"   Características seleccionadas: {caracteristicas_nino}")
+        
+        # 3. Generar descripción con el modelo de características
+        import time
+        start_time = time.time()
+        
+        from characteristics_model import quick_generate_characteristics
+        descripcion_modelo = quick_generate_characteristics(pil_image)
+        
+        print(f"   Descripción modelo: {descripcion_modelo}")
+        
+        # 4. Validar características
+        from activities import validar_juego_caracteristicas
+        
+        resultado = validar_juego_caracteristicas(
+            descripcion_modelo=descripcion_modelo,
+            caracteristicas_nino=caracteristicas_nino,
+            umbral=umbral
+        )
+        
+        processing_time = time.time() - start_time
+        
+        # 5. Log del resultado
+        if resultado['es_correcto']:
+            print(f"✅ {processing_time:.2f}s - {resultado['mensaje']}")
+        else:
+            print(f"❌ {processing_time:.2f}s - {resultado['mensaje']}")
+        
+        # 6. Preparar respuesta
+        return JSONResponse(
+            content={
+                "es_correcto": resultado["es_correcto"],
+                "mensaje": resultado["mensaje"],
+                "nombre_objeto": resultado["nombre_objeto"],
+                "caracteristicas_modelo": resultado["caracteristicas_modelo"],
+                "caracteristicas_correctas": resultado["caracteristicas_correctas"],
+                "caracteristicas_incorrectas": resultado["caracteristicas_incorrectas"],
+                "porcentaje_acierto": resultado["porcentaje_acierto"],
+                "total_seleccionadas": resultado["total_seleccionadas"],
+                "total_correctas": resultado["total_correctas"],
+                "detalles": resultado["detalles"],
+                "descripcion_completa": resultado["descripcion_completa"],
+                "umbral": umbral,
+                "processing_time_seconds": round(processing_time, 2)
+            },
+            media_type="application/json; charset=utf-8"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error validando características: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error validando características: {str(e)}"
+        )
+
