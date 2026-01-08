@@ -455,8 +455,7 @@ class CaracteristicasRequest(BaseModel):
 @app.post("/validar-caracteristicas")
 async def validar_caracteristicas(
     image: UploadFile = File(...),
-    caracteristicas_seleccionadas: str = Form(...),  # JSON string de lista
-    umbral: float = Form(0.7)
+    caracteristicas_seleccionadas: str = Form(...)  # JSON string de lista o CSV
 ):
     """
     Juego de características para niños.
@@ -518,13 +517,12 @@ async def validar_caracteristicas(
         
         print(f"   Descripción modelo: {descripcion_modelo}")
         
-        # 4. Validar características
+        # 4. Validar características (comparación exacta)
         from activities import validar_juego_caracteristicas
         
         resultado = validar_juego_caracteristicas(
             descripcion_modelo=descripcion_modelo,
-            caracteristicas_nino=caracteristicas_nino,
-            umbral=umbral
+            caracteristicas_nino=caracteristicas_nino
         )
         
         processing_time = time.time() - start_time
@@ -549,7 +547,6 @@ async def validar_caracteristicas(
                 "total_correctas": resultado["total_correctas"],
                 "detalles": resultado["detalles"],
                 "descripcion_completa": resultado["descripcion_completa"],
-                "umbral": umbral,
                 "processing_time_seconds": round(processing_time, 2)
             },
             media_type="application/json; charset=utf-8"

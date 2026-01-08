@@ -7,25 +7,13 @@ Formato esperado del modelo:
 "isla, porción de tierra aislada, rodeada completamente por agua"
 - Primera parte: nombre del objeto
 - Resto: características separadas por comas
+
+NOTA: Este módulo usa comparación EXACTA de strings (normalizada).
+El frontend debe mostrar las opciones exactas que genera el modelo.
 """
 
 from typing import List, Dict, Tuple
-from sentence_transformers import SentenceTransformer, util
 import re
-
-
-# Modelo de similitud semántica (se carga una sola vez)
-_similarity_model = None
-
-
-def get_similarity_model():
-    """Obtiene el modelo de similitud semántica (singleton)"""
-    global _similarity_model
-    if _similarity_model is None:
-        print("⏳ Cargando modelo de similitud semántica...")
-        _similarity_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-        print("✅ Modelo de similitud cargado")
-    return _similarity_model
 
 
 def parsear_caracteristicas(descripcion: str) -> Tuple[str, List[str]]:
@@ -84,13 +72,13 @@ def parsear_caracteristicas(descripcion: str) -> Tuple[str, List[str]]:
 
 def normalizar_texto(texto: str) -> str:
     """
-    Normaliza texto para comparación.
+    Normaliza texto para comparación exacta.
     
     Args:
         texto: Texto a normalizar
     
     Returns:
-        Texto normalizado (minúsculas, sin espacios extras, sin puntuación)
+        Texto normalizado (minúsculas, sin espacios extras, sin puntuación, sin tildes)
     """
     # Convertir a minúsculas
     texto = texto.lower().strip()
@@ -101,59 +89,48 @@ def normalizar_texto(texto: str) -> str:
     # Normalizar espacios múltiples
     texto = re.sub(r'\s+', ' ', texto)
     
+    # Eliminar tildes para comparación más flexible
+    replacements = {
+        'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+        'ñ': 'n', 'ü': 'u'
+    }
+    for old, new in replacements.items():
+        texto = texto.replace(old, new)
+    
     return texto
 
 
-def similitud_caracteristicas(carac1: str, carac2: str, umbral: float = 0.7) -> float:
+def comparar_caracteristicas(carac1: str, carac2: str) -> bool:
     """
-    Calcula la similitud semántica entre dos características.
+    Compara dos características usando comparación exacta (normalizada).
     
     Args:
         carac1: Primera característica
         carac2: Segunda característica
-        umbral: Umbral mínimo de similitud
     
     Returns:
-        Score de similitud (0.0 a 1.0)
+        True si son iguales (normalizadas), False si no
     """
-    # Normalizar textos
+    # Normalizar y comparar
     carac1_norm = normalizar_texto(carac1)
     carac2_norm = normalizar_texto(carac2)
     
-    # Comparación exacta
-    if carac1_norm == carac2_norm:
-        return 1.0
-    
-    # Similitud semántica con modelo
-    try:
-        model = get_similarity_model()
-        embeddings = model.encode([carac1_norm, carac2_norm], convert_to_tensor=True)
-        similitud = util.cos_sim(embeddings[0], embeddings[1]).item()
-        return similitud
-    except Exception as e:
-        print(f"⚠️ Error calculando similitud: {e}")
-        # Fallback: comparación simple de palabras
-        palabras1 = set(carac1_norm.split())
-        palabras2 = set(carac2_norm.split())
-        if not palabras1 or not palabras2:
-            return 0.0
-        interseccion = len(palabras1 & palabras2)
-        union = len(palabras1 | palabras2)
-        return interseccion / union if union > 0 else 0.0
+    return carac1_norm == carac2_norm
+
 
 
 def evaluar_caracteristicas(
     caracteristicas_modelo: List[str],
-    caracteristicas_nino: List[str],
-    umbral: float = 0.7
+    caracteristicas_nino: List[str]
 ) -> Dict:
     """
     Evalúa si las características seleccionadas por el niño coinciden con las del modelo.
     
+    Usa comparación EXACTA de strings (normalizada).
+    
     Args:
         caracteristicas_modelo: Lista de características predichas por el modelo
         caracteristicas_nino: Lista de características seleccionadas por el niño
-        umbral: Umbral de similitud para considerar una característica correcta
     
     Returns:
         Diccionario con:
@@ -187,30 +164,28 @@ def evaluar_caracteristicas(
             "total_correctas": 0
         }
     
+    
     caracteristicas_correctas = []
     caracteristicas_incorrectas = []
     detalles = []
     
     # Evaluar cada característica del niño
     for carac_nino in caracteristicas_nino:
-        mejor_similitud = -1.0  # Inicializar con valor negativo para capturar incluso 0.0
+        es_correcta = False
         mejor_match = None
         
-        # Buscar la característica del modelo más similar
+        # Buscar si la característica existe en el modelo (comparación exacta)
         for carac_modelo in caracteristicas_modelo:
-            similitud = similitud_caracteristicas(carac_nino, carac_modelo, umbral)
-            if similitud > mejor_similitud:
-                mejor_similitud = similitud
+            if comparar_caracteristicas(carac_nino, carac_modelo):
+                es_correcta = True
                 mejor_match = carac_modelo
+                break
         
-        # Si no se encontró ningún match (lista vacía), usar la primera característica
-        if mejor_match is None and caracteristicas_modelo:
+        # Si no se encontró match, usar la primera característica del modelo como referencia
+        if not es_correcta and caracteristicas_modelo:
             mejor_match = caracteristicas_modelo[0]
-            mejor_similitud = 0.0
         
-        # Determinar si es correcta
-        es_correcta = mejor_similitud >= umbral
-        
+        # Agregar a la lista correspondiente
         if es_correcta:
             caracteristicas_correctas.append(carac_nino)
         else:
@@ -219,7 +194,6 @@ def evaluar_caracteristicas(
         detalles.append({
             "caracteristica_nino": carac_nino,
             "caracteristica_modelo_match": mejor_match,
-            "similitud": round(mejor_similitud, 4),
             "es_correcta": es_correcta
         })
     
@@ -254,17 +228,18 @@ def evaluar_caracteristicas(
 
 def validar_juego_caracteristicas(
     descripcion_modelo: str,
-    caracteristicas_nino: List[str],
-    umbral: float = 0.7
+    caracteristicas_nino: List[str]
 ) -> Dict:
     """
     Función principal para validar el juego de características.
+    
+    Usa comparación EXACTA de strings (normalizada).
+    El frontend debe mostrar las opciones exactas que genera el modelo.
     
     Args:
         descripcion_modelo: Descripción completa generada por el modelo
                            (formato: "nombre, característica1, característica2, ...")
         caracteristicas_nino: Lista de características seleccionadas por el niño
-        umbral: Umbral de similitud para considerar una característica correcta
     
     Returns:
         Diccionario con el resultado de la evaluación
@@ -275,8 +250,7 @@ def validar_juego_caracteristicas(
     # Evaluar características
     resultado = evaluar_caracteristicas(
         caracteristicas_modelo=caracteristicas_modelo,
-        caracteristicas_nino=caracteristicas_nino,
-        umbral=umbral
+        caracteristicas_nino=caracteristicas_nino
     )
     
     # Agregar información adicional

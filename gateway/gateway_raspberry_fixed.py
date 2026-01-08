@@ -30,7 +30,7 @@ app.add_middleware(
 # ============================================
 
 # URL del servidor con el modelo BLIP
-MODEL_SERVER_URL = "http://10.102.238.236:8000"
+MODEL_SERVER_URL = "http://localhost:8000"
 
 # --- CONFIGURACIÓN ESP32 (Bluetooth) ---
 PUERTO_ESP32 = '/dev/rfcomm0'  
@@ -278,6 +278,7 @@ def root():
             "generate_quiz": "POST /generate-quiz - Genera quiz de opción múltiple",
             "validate_quiz": "POST /validate-quiz - Valida respuesta del quiz",
             "validar_reto": "POST /validar-reto - Valida imagen en juego interactivo",
+            "validar_caracteristicas": "POST /validar-caracteristicas - Juego de características para niños",
             "health": "GET /health - Verifica estado del sistema",
             "configure_esp32": "POST /configure_esp32 - Configura conexión ESP32"
         }
@@ -609,6 +610,101 @@ async def validar_reto_proxy(
         es_correcto = result.get('es_correcto', False)
         
         print(f"   Detectado: '{result.get('sujeto_detectado', 'N/A')}'")
+        print(f"   Resultado: {'✅ CORRECTO' if es_correcto else '❌ INCORRECTO'}")
+        
+        # Enviar señal al ESP32 según el resultado
+        esp32_sent = False
+        if es_correcto:
+            print("🔵 Enviando señal 'b' (correcto) al ESP32...")
+            esp32_sent = await send_to_esp32("b")
+        else:
+            print("🔵 Enviando señal 'm' (incorrecto) al ESP32...")
+            esp32_sent = await send_to_esp32("m")
+        
+        # Enviar a Nextion: mostrar página de resultado y programar regreso a página principal
+        nextion_page = PAGE_WIN if es_correcto else PAGE_LOSE
+        print(f"🟣 Nextion: Mostrando {nextion_page} ({'GANASTE' if es_correcto else 'PERDISTE'})...")
+        await show_result_and_return(es_correcto)
+        
+        # Agregar info sobre el ESP32 y Nextion en la respuesta
+        result['esp32_signal_sent'] = esp32_sent
+        result['esp32_message'] = 'b' if es_correcto else 'm'
+        result['nextion_page_shown'] = nextion_page
+        result['nextion_auto_return'] = True
+        result['nextion_return_seconds'] = 7
+        
+        return JSONResponse(
+            content=result,
+            media_type="application/json; charset=utf-8"
+        )
+        
+    except httpx.TimeoutException:
+        print("❌ GATEWAY - Timeout conectando al servidor ML")
+        raise HTTPException(
+            status_code=504,
+            detail="Timeout conectando al servidor ML"
+        )
+    except Exception as e:
+        print(f"❌ GATEWAY - Error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en gateway: {str(e)}"
+        )
+
+
+@app.post("/validar-caracteristicas")
+async def validar_caracteristicas_proxy(
+    image: UploadFile = File(...),
+    caracteristicas_seleccionadas: str = Form(...)
+):
+    """
+    Proxy para /validar-caracteristicas - Juego de características para niños
+    
+    El niño selecciona características de una imagen y el sistema valida
+    si son correctas comparándolas con las predichas por el modelo.
+    
+    Envía señales a ESP32 y Nextion según el resultado:
+    - ESP32: 'b' si es correcto, 'm' si es incorrecto
+    - Nextion: page2 (ganaste) o page3 (perdiste)
+    """
+    print(f"\n🎮 GATEWAY /validar-caracteristicas - Imagen: {image.filename}")
+    print(f"   Características: {caracteristicas_seleccionadas[:100]}...")
+    
+    try:
+        # Leer la imagen
+        image_bytes = await image.read()
+        
+        # Preparar el archivo para enviarlo al servidor ML
+        files = {
+            'image': (image.filename, image_bytes, image.content_type)
+        }
+        
+        # Preparar los datos del form
+        data = {
+            'caracteristicas_seleccionadas': caracteristicas_seleccionadas
+        }
+        
+        # Enviar al servidor ML
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{MODEL_SERVER_URL}/validar-caracteristicas",
+                files=files,
+                data=data
+            )
+        
+        # Verificar respuesta
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Error del servidor ML: {response.text}"
+            )
+        
+        result = response.json()
+        es_correcto = result.get('es_correcto', False)
+        porcentaje = result.get('porcentaje_acierto', 0)
+        
+        print(f"   Objeto: '{result.get('nombre_objeto', 'N/A')}'")
+        print(f"   Porcentaje acierto: {porcentaje}%")
         print(f"   Resultado: {'✅ CORRECTO' if es_correcto else '❌ INCORRECTO'}")
         
         # Enviar señal al ESP32 según el resultado
