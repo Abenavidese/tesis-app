@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import '../../../../core/constants/api_constants.dart';
@@ -24,6 +25,8 @@ class ChallengeProvider with ChangeNotifier {
   List<String> _wordOptions = []; // Para reto 4: opciones de palabras
   int? _selectedWordIndex; // Índice de palabra seleccionada
   String _correctWord = ''; // Palabra correcta
+  bool _isFromCamera = false;
+  bool _isSaving = false;
 
   // Lista de retos
   final List<Challenge> _challenges = [
@@ -76,10 +79,14 @@ class ChallengeProvider with ChangeNotifier {
   List<String> get wordOptions => _wordOptions;
   int? get selectedWordIndex => _selectedWordIndex;
   String get correctWord => _correctWord;
+  bool get isFromCamera => _isFromCamera;
+  bool get isSaving => _isSaving;
 
   // Validar imagen capturada contra el sujeto solicitado
-  Future<void> validateChallenge(File imageFile) async {
+  Future<void> validateChallenge(File imageFile, {bool isFromCamera = false}) async {
     _isLoading = true;
+    _isFromCamera = isFromCamera;
+    _isSaving = false;
     _errorMessage = null;
     _capturedImage = imageFile;
     notifyListeners();
@@ -344,8 +351,8 @@ class ChallengeProvider with ChangeNotifier {
       final tempFile = File('${tempDir.path}/temp_image_${DateTime.now().millisecondsSinceEpoch}.jpg');
       await tempFile.writeAsBytes(byteData.buffer.asUint8List());
       
-      // Validar con el backend
-      await validateChallenge(tempFile);
+      // Validar con el backend (isFromCamera es false porque viene de assets)
+      await validateChallenge(tempFile, isFromCamera: false);
       
       // Limpiar archivo temporal
       await tempFile.delete();
@@ -440,5 +447,23 @@ class ChallengeProvider with ChangeNotifier {
     }
     
     notifyListeners();
+  }
+
+  Future<void> saveCapturedImage() async {
+    if (_capturedImage == null || !_isFromCamera) return;
+    
+    try {
+      _isSaving = true;
+      notifyListeners();
+      
+      await Gal.putImage(_capturedImage!.path);
+      
+      _isSaving = false;
+      notifyListeners();
+    } catch (e) {
+      _isSaving = false;
+      notifyListeners();
+      rethrow;
+    }
   }
 }

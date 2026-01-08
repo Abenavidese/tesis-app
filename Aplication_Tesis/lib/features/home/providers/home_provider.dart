@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:gal/gal.dart';
 import '../models/image_analysis.dart';
 import '../../../core/services/camera_service.dart';
 import '../../../core/services/api_service.dart';
@@ -24,6 +26,8 @@ class HomeProvider extends ChangeNotifier {
   bool _audioInitialized = false;
   String? _evaluationMessage;
   bool? _isCorrect;
+  bool _isFromCamera = false;
+  bool _isSaving = false;
 
   ImageAnalysis? get currentAnalysis => _currentAnalysis;
   bool get isProcessing => _isProcessing;
@@ -36,6 +40,8 @@ class HomeProvider extends ChangeNotifier {
   String? get recognizedText => _recognizedText;
   String? get evaluationMessage => _evaluationMessage;
   bool? get isCorrect => _isCorrect;
+  bool get isFromCamera => _isFromCamera;
+  bool get isSaving => _isSaving;
   
   // Indica si hay algún proceso en curso que debe deshabilitar otros botones
   bool get hasAnyProcessRunning => _isTakingPhoto || _isLoadingGallery || _isEvaluating || _isProcessingAudio;
@@ -52,6 +58,7 @@ class HomeProvider extends ChangeNotifier {
       _isTakingPhoto = true;
       _setProcessing(true);
       clearEvaluation(); // Limpiar evaluación anterior
+      _isFromCamera = true;
       
       final File? imageFile = await _cameraService.takePicture();
       if (imageFile == null) {
@@ -122,6 +129,7 @@ class HomeProvider extends ChangeNotifier {
   // Button actions - Load image from gallery
   Future<void> onButton2Pressed() async {
     try {
+      _isFromCamera = false;
       _isLoadingGallery = true;
       _setProcessing(true);
       
@@ -322,6 +330,24 @@ class HomeProvider extends ChangeNotifier {
     _evaluationMessage = null;
     _isCorrect = null;
     notifyListeners();
+  }
+
+  Future<void> saveCapturedImage() async {
+    if (_currentAnalysis?.imageFile == null || !_isFromCamera) return;
+    
+    try {
+      _isSaving = true;
+      notifyListeners();
+      
+      await Gal.putImage(_currentAnalysis!.imageFile!.path);
+      
+      _isSaving = false;
+      notifyListeners();
+    } catch (e) {
+      _isSaving = false;
+      notifyListeners();
+      rethrow;
+    }
   }
 
   @override

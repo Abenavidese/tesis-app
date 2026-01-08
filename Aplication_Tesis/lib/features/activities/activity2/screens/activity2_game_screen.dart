@@ -27,12 +27,38 @@ class _Activity2GameScreenState extends State<Activity2GameScreen> {
         // Generar quiz desde la imagen capturada
         await context.read<QuizProvider>().generateQuestionFromImage(
           File(photo.path),
+          isFromCamera: true,
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al capturar imagen: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (photo != null && mounted) {
+        // Generar quiz desde la imagen seleccionada
+        await context.read<QuizProvider>().generateQuestionFromImage(
+          File(photo.path),
+          isFromCamera: false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al seleccionar imagen: $e')),
         );
       }
     }
@@ -231,7 +257,7 @@ class _Activity2GameScreenState extends State<Activity2GameScreen> {
           ),
           const SizedBox(height: 24),
           const Text(
-            '¡Toma una foto!',
+            '¡Elige una imagen!',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -240,7 +266,7 @@ class _Activity2GameScreenState extends State<Activity2GameScreen> {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Captura una imagen para\ngenerar el quiz',
+            'Captura una imagen o selecciónala\nde tu galería para generar el quiz',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
@@ -257,6 +283,24 @@ class _Activity2GameScreenState extends State<Activity2GameScreen> {
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: _pickFromGallery,
+            icon: const Icon(Icons.photo_library),
+            label: const Text('CARGAR DE GALERÍA'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF1976D2),
+              side: const BorderSide(color: Color(0xFF42A5F5), width: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
         ],
@@ -287,10 +331,53 @@ class _Activity2GameScreenState extends State<Activity2GameScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.file(
-                provider.currentImage!,
-                fit: BoxFit.cover,
-              ),
+            child: Stack(
+              alignment: Alignment.topRight,
+              children: [
+                Image.file(
+                  provider.currentImage!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
+                if (provider.isFromCamera)
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: FloatingActionButton.small(
+                      heroTag: 'save_image_a2',
+                      onPressed: provider.isSaving ? null : () async {
+                        try {
+                          await provider.saveCapturedImage();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('✅ Imagen guardada en la galería'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('❌ Error al guardar: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      backgroundColor: Colors.white.withOpacity(0.9),
+                      child: provider.isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.save_alt, color: Color(0xFF42A5F5)),
+                    ),
+                  ),
+              ],
+            ),
             ),
           ),
         

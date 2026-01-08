@@ -35,8 +35,10 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
       );
 
       if (photo != null && mounted) {
+        _stopTimer(); // Detener cronómetro solo al empezar a procesar
         await context.read<ChallengeProvider>().validateChallenge(
           File(photo.path),
+          isFromCamera: true,
         );
       }
     } catch (e) {
@@ -48,11 +50,36 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
     }
   }
 
+  Future<void> _pickFromGallery() async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (photo != null && mounted) {
+        _stopTimer(); // Detener cronómetro solo al empezar a procesar
+        await context.read<ChallengeProvider>().validateChallenge(
+          File(photo.path),
+          isFromCamera: false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al seleccionar imagen: $e')),
+        );
+      }
+    }
+  }
+
   void _startTimer() {
     final provider = context.read<ChallengeProvider>();
     provider.resetTimer();
     
-    _timer?.cancel();
+    _stopTimer();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -72,6 +99,14 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
         );
       }
     });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+    if (mounted) {
+      setState(() {}); // Forzar reconstrucción para actualizar el botón
+    }
   }
 
   @override
@@ -94,14 +129,15 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           children: [
-                            if (provider.isLoading)
-                              _buildLoadingState()
-                            else if (provider.errorMessage != null)
+                            if (provider.errorMessage != null)
                               _buildErrorState(provider)
                             else if (provider.challengeCompleted)
                               _buildSuccessState(provider)
-                            else
+                            else ...[
+                              if (provider.isLoading)
+                                _buildLoadingState(),
                               _buildChallengeContent(provider),
+                            ],
                           ],
                         ),
                       ),
@@ -293,6 +329,74 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
           ),
         ),
         
+        if (provider.capturedImage != null) ...[
+          const SizedBox(height: 20),
+          Container(
+            height: 150,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  Image.file(
+                    provider.capturedImage!,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                  if (provider.isFromCamera)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: FloatingActionButton.small(
+                        heroTag: 'save_image_a3',
+                        onPressed: provider.isSaving ? null : () async {
+                          try {
+                            await provider.saveCapturedImage();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('✅ Imagen guardada en la galería'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('❌ Error al guardar: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        backgroundColor: Colors.white.withOpacity(0.9),
+                        child: provider.isSaving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.save_alt, color: Color(0xFFFF8A65)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        
         const SizedBox(height: 24),
         
         // Botón siguiente reto
@@ -386,34 +490,94 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
                   color: Colors.grey,
                 ),
               ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: provider.timeRemaining > 5 
+                      ? const Color(0xFFFF8A65).withOpacity(0.2)
+                      : Colors.red.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '${provider.timeRemaining}s',
+                  style: TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    color: provider.timeRemaining > 5 
+                        ? const Color(0xFFFF7043)
+                        : Colors.red,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
         
         const SizedBox(height: 24),
         
-        const Text(
-          '¡Toma una foto del objeto correcto!',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF424242),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: (provider.timeRemaining > 0 && !provider.isLoading) 
+                    ? () {
+                        if (_timer == null || !_timer!.isActive) {
+                          _startTimer();
+                        }
+                        _captureImage();
+                      }
+                    : null,
+                icon: const Icon(Icons.camera_alt),
+                label: Text(_timer == null || !_timer!.isActive 
+                    ? 'INICIAR' 
+                    : 'CÁMARA'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF8A65),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: (provider.timeRemaining > 0 && !provider.isLoading) 
+                    ? () {
+                        if (_timer == null || !_timer!.isActive) {
+                          _startTimer();
+                        }
+                        _pickFromGallery();
+                      }
+                    : null,
+                icon: const Icon(Icons.photo_library),
+                label: const Text('GALERÍA'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFFF7043),
+                  side: const BorderSide(color: Color(0xFFFF8A65), width: 2),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+          ],
         ),
         
-        const SizedBox(height: 16),
-        
-        ElevatedButton.icon(
-          onPressed: _captureImage,
-          icon: const Icon(Icons.camera_alt, size: 32),
-          label: const Text('TOMAR FOTO'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF8A65),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-            textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        if (_timer != null && _timer!.isActive) ...[
+          const SizedBox(height: 16),
+          const Text(
+            '¡Rápido! El tiempo corre',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.orange,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -477,25 +641,55 @@ class _Activity3GameScreenState extends State<Activity3GameScreen> {
         
         const SizedBox(height: 24),
         
-        ElevatedButton.icon(
-          onPressed: provider.timeRemaining > 0 
-              ? () {
-                  if (_timer == null || !_timer!.isActive) {
-                    _startTimer();
-                  }
-                  _captureImage();
-                }
-              : null,
-          icon: const Icon(Icons.camera_alt, size: 32),
-          label: Text(_timer == null || !_timer!.isActive 
-              ? 'INICIAR RETO' 
-              : 'TOMAR FOTO'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF8A65),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-            textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: (provider.timeRemaining > 0 && !provider.isLoading) 
+                    ? () {
+                        if (_timer == null || !_timer!.isActive) {
+                          _startTimer();
+                        }
+                        _captureImage();
+                      }
+                    : null,
+                icon: const Icon(Icons.camera_alt),
+                label: Text(_timer == null || !_timer!.isActive 
+                    ? 'INICIAR' 
+                    : 'CÁMARA'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF8A65),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: (provider.timeRemaining > 0 && !provider.isLoading) 
+                    ? () {
+                        if (_timer == null || !_timer!.isActive) {
+                          _startTimer();
+                        }
+                        _pickFromGallery();
+                      }
+                    : null,
+                icon: const Icon(Icons.photo_library),
+                label: const Text('GALERÍA'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFFF7043),
+                  side: const BorderSide(color: Color(0xFFFF8A65), width: 2),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+          ],
         ),
         
         if (_timer != null && _timer!.isActive) ...[
